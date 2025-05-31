@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/AWC-Tracker/static/css/main.d70fd659.css",
+    "main.js": "/AWC-Tracker/static/js/main.e3bc16f2.js",
+    "static/js/453.4a625623.chunk.js": "/AWC-Tracker/static/js/453.4a625623.chunk.js",
+    "index.html": "/AWC-Tracker/index.html",
+    "main.d70fd659.css.map": "/AWC-Tracker/static/css/main.d70fd659.css.map",
+    "main.e3bc16f2.js.map": "/AWC-Tracker/static/js/main.e3bc16f2.js.map",
+    "453.4a625623.chunk.js.map": "/AWC-Tracker/static/js/453.4a625623.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d70fd659.css",
+    "static/js/main.e3bc16f2.js"
+  ]
+}
