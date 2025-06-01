@@ -8,9 +8,12 @@ body {
 }
 
 .App {
+  position: relative;
   display: flex;
   height: 100vh;
   overflow: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #444 #1a1a1a;
 }
 
 .sidebar {
@@ -19,6 +22,7 @@ body {
   padding: 1rem;
   border-right: 1px solid #2a2d34;
   overflow-y: auto;
+  position: relative; /* so that .help-button can be absolute at bottom-left */
 }
 
 .main {
@@ -57,6 +61,7 @@ button {
   cursor: pointer;
   margin-right: 0.5em;
   margin-top: 0.25em;
+  font-family: inherit;
 }
 
 button:hover {
@@ -97,7 +102,7 @@ img {
   margin-right: 1em;
 }
 
-h1, h2, h3 {
+h1,h2,h3 {
   margin-top: 0;
 }
 
@@ -169,5 +174,132 @@ li img {
 }
 
 .back-button {
-  margin-bottom: 1rem; 
+  margin-bottom: 1rem;
+}
+
+.App::-webkit-scrollbar {
+  width: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.App:hover::-webkit-scrollbar {
+  opacity: 1;
+}
+
+.App::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.App::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 10px;
+  border: 2px solid #1a1a1a;
+}
+
+.App::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+
+.help-button {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  z-index: 10; 
+}
+
+.help-button:hover {
+  background-color: #2563eb;
+}
+
+
+.dialog-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999; 
+}
+
+.dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.dialog-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.dialog-panel {
+  background-color: #1a1c22; 
+  color: #ffffff;
+  max-width: 500px;
+  width: 100%;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  transform-origin: center center;
+}
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.dialog-description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 1rem;
+}
+
+.dialog-list {
+  list-style-type: disc;
+  list-style-position: inside;
+  padding-left: 0;
+  margin: 0;
+}
+
+.dialog-list li {
+  margin-bottom: 0.5rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.dialog-close-btn {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.dialog-close-btn:hover {
+  background-color: #2563eb;
 }

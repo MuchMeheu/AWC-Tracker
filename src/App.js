@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Fragment  } from 'react';
 import './App.css';
-
+import awcLogo from './assets/ALAWClogo.png';
+import { Description, Dialog, DialogPanel, DialogTitle, Transition  } from '@headlessui/react'
 const CLIENT_ID = 27290;
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [copiedChallengeId, setCopiedChallengeId] = useState(null);
   const [copiedUrlId, setCopiedUrlId] = useState(null);
+  let [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -257,7 +259,17 @@ function App() {
   return (
     <div className="App">
       <div className="sidebar">
-        <h1 style={{ cursor: 'pointer' }} onClick={() => setSelectedChallenge(null)}>📚 AWC Tracker</h1>
+        <h1 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setSelectedChallenge(null)}>
+            <img src={awcLogo} alt="AWC Logo"
+              style={{
+                width: 80,
+                height: 127,
+                marginRight: 8,
+                objectFit: 'contain'
+              }}
+            />
+            AWC Tracker
+          </h1>
         {!token ? (
           <button onClick={loginAniList}>🔑 Login with AniList</button>
         ) : (
@@ -274,6 +286,7 @@ function App() {
             </li>
           ))}
         </ul>
+        <button className="help-button" onClick={() => setIsOpen(true)}>❓ Help</button>
       </div>
 
       <div className="main">
@@ -323,6 +336,8 @@ function App() {
       </div>
 
       <div className="rightbar">
+
+
         <h2>📋 Manage</h2>
         <ul>
           {challenges.map((ch) => {
@@ -354,9 +369,65 @@ function App() {
             );
           })}
         </ul>
+        
       </div>
-    </div>
-  );
+
+      <Transition appear={true} show={isOpen} as={Fragment}>
+        <Dialog as="div" className="dialog-root" onClose={() => setIsOpen(false)}>
+
+          <Transition
+            show={isOpen}
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-30"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-30"
+            leaveTo="opacity-0"
+          >
+            <div className="dialog-backdrop" aria-hidden="true" />
+          </Transition>
+
+
+          <div className="dialog-container">
+
+            <Transition
+              show={isOpen}
+              as={Fragment}
+              enter="ease-out duration-200"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-150"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <DialogPanel className="dialog-panel">
+                <DialogTitle className="dialog-title">
+                  How to Use AWC Tracker
+                </DialogTitle>
+                <Description as="div" className="dialog-description">
+                  <ul className="dialog-list">
+                    <li>🔑 Click “Login with AniList” to authorize.</li>
+                    <li>➕ Paste your challenge code and click “Save Challenge.”</li>
+                    <li>📊 View combined anime status in Global Tracker.</li>
+                    <li>📋 Use the buttons to copy forum URL or challenge code.</li>
+                    <li>⭐ Use exactly ✔️ ❌ ⭐ so the parser recognizes status.</li>
+                  </ul>
+                </Description>
+                <div className="dialog-actions">
+                  <button className="dialog-close-btn" onClick={() => setIsOpen(false)}>
+                    Close
+                  </button>
+                </div>
+              </DialogPanel>
+            </Transition>
+          </div>
+        </Dialog>
+      </Transition>
+
+  </div>
+);
+
 }
 
 export default App;
