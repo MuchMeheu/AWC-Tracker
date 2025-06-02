@@ -14,437 +14,216 @@ body {
   overflow: hidden;
 }
 
-/* App Title Styling */
-.app-title-container { /* For the div wrapping logo and title */
-  transition: background-color 0.2s ease;
-  padding: 0.5rem;
-  margin-left: -0.5rem; /* Counteract padding for alignment */
-  margin-right: -0.5rem;
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background-color: #2ecc71; 
+  color: white;
+  padding: 12px 20px;
   border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 250px;
+  font-size: 0.95rem;
+  opacity: 0;
+  animation: toast-fade-in 0.3s forwards, toast-fade-out 0.3s 2.7s forwards;
 }
-.app-title-container:hover {
-  background-color: #1f1f26;
+
+.toast-success { background-color: #27ae60; }
+.toast-error { background-color: #c0392b; }
+.toast-info { background-color: #2980b9; }
+.toast-warning { background-color: #f39c12; }
+
+.toast-dismiss-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  line-height: 1;
+  margin-left: 15px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.7;
 }
-.app-title-text {
-  font-size: 1.75rem; /* Or adjust as preferred */
-  font-weight: 600;
-  /* No specific color needed, inherits from body */
+.toast-dismiss-btn:hover { opacity: 1; }
+
+@keyframes toast-fade-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
-.loading-user-text { /* Style for "Loading user..." text */
-  padding: 0.5rem;
-  color: #aaa;
+@keyframes toast-fade-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(100%); }
 }
+
+
+
+.app-title-container { transition: background-color 0.2s ease; padding: 0.5rem; margin-left: -0.5rem; margin-right: -0.5rem; border-radius: 6px; }
+.app-title-container:hover { background-color: #1f1f26; }
+.app-title-text { font-size: 1.75rem; font-weight: 600; }
+.loading-user-text { padding: 0.5rem; color: #aaa; }
 
 
 .sidebar, .main, .rightbar {
   overflow-y: auto;
   scrollbar-width: thin; 
   scrollbar-color: #444 #1a1a1a; 
+  position: relative; 
 }
 
 .sidebar::-webkit-scrollbar,
 .main::-webkit-scrollbar,
-.rightbar::-webkit-scrollbar {
-  width: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease-out;
-}
-
+.rightbar::-webkit-scrollbar { width: 8px; opacity: 0; transition: opacity 0.2s ease-out; }
 .sidebar:hover::-webkit-scrollbar,
 .main:hover::-webkit-scrollbar,
-.rightbar:hover::-webkit-scrollbar {
-  opacity: 1;
-}
-
+.rightbar:hover::-webkit-scrollbar { opacity: 1; }
 .sidebar::-webkit-scrollbar-track,
 .main::-webkit-scrollbar-track,
-.rightbar::-webkit-scrollbar-track {
-  background: #1a1a1a; 
-}
-
+.rightbar::-webkit-scrollbar-track { background: #1a1a1a; }
 .sidebar::-webkit-scrollbar-thumb,
 .main::-webkit-scrollbar-thumb,
-.rightbar::-webkit-scrollbar-thumb {
-  background-color: #444;
-  border-radius: 10px;
-  border: 2px solid #1a1a1a; 
-}
-
+.rightbar::-webkit-scrollbar-thumb { background-color: #444; border-radius: 10px; border: 2px solid #1a1a1a; }
 .sidebar::-webkit-scrollbar-thumb:hover,
 .main::-webkit-scrollbar-thumb:hover,
-.rightbar::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
+.rightbar::-webkit-scrollbar-thumb:hover { background-color: #666; }
+
+.sidebar { width: 240px; background-color: #111317; padding: 1rem; border-right: 1px solid #2a2d34; }
+.main { flex: 1; padding: 2rem; background-color: #0f1117; }
+.rightbar { width: 320px; background-color: #111317; padding: 1rem; border-left: 1px solid #2a2d34; }
+
+textarea, input[type="text"] { width: 100%; background-color: #1a1c22; color: #ffffff; border: 1px solid #444; border-radius: 6px; padding: 0.75em; font-size: 14px; margin-bottom: 1em; box-sizing: border-box; }
+button { background-color: #3b82f6; color: white; border: none; padding: 0.5em 1em; border-radius: 5px; cursor: pointer; margin-right: 0.5em; margin-top: 0.25em; font-family: inherit; transition: background-color 0.2s ease; }
+button:hover { background-color: #2563eb; }
+button:disabled { background-color: #555; cursor: not-allowed; }
+
+ul { padding: 0; list-style: none; }
+li { background-color: #1a1c22; border-radius: 8px; padding: 1em; margin-bottom: 1em; display: flex; justify-content: space-between; align-items: flex-start; }
+
+.sidebar ul li.sidebar-challenge-item { padding: 0.75em 1em; margin-bottom: 0.5em; background-color: #1f1f26; border-radius: 5px; color: #eee; transition: background-color 0.2s ease, border-left 0.2s ease; border-left: 3px solid transparent; cursor: pointer; }
+.sidebar ul li.sidebar-challenge-item:hover { background-color: #2a2f3a; }
+.sidebar ul li.sidebar-challenge-item.selected { background-color: #2563eb; color: #ffffff; border-left: 3px solid #60a5fa; }
+.sidebar ul li.sidebar-challenge-item.selected strong { color: #ffffff; }
+
+img { width: 60px; height: auto; border-radius: 5px; margin-right: 1em; }
+h2,h3 { margin-top: 0; margin-bottom: 0.75rem; }
+a { color: #d1d5db; text-decoration: none; white-space: nowrap; transition: color 0.2s ease; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+a:hover { text-decoration: underline; color: #93c5fd; }
+strong { font-weight: 600; display: block; margin-bottom: 0.25em; color: #f1f1f1; }
+li div { flex: 1; padding-left: 0.5em; min-width: 0; }
+li img { flex-shrink: 0; }
+
+.profile-display { display: flex; align-items: center; margin: 1rem 0; gap: 0.75rem; cursor: pointer; padding: 0.5rem; border-radius: 6px; transition: background-color 0.2s ease; }
+.profile-display:hover { background-color: #1f1f26; }
+.profile-display img.avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #444; }
+.profile-display span { font-weight: 600; font-size: 1rem; color: #f1f1f1; }
+
+.button-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.awc-link { margin-top: 8px; }
+.back-button { margin-bottom: 1rem; }
 
 
-.sidebar {
-  width: 240px;
-  background-color: #111317;
-  padding: 1rem;
-  border-right: 1px solid #2a2d34;
-  position: relative; 
-}
-
-.main {
-  flex: 1;
-  padding: 2rem;
-  background-color: #0f1117;
-}
-
-.rightbar {
-  width: 320px;
-  background-color: #111317;
-  padding: 1rem;
-  border-left: 1px solid #2a2d34;
-}
-
-textarea,
-input[type="text"] {
-  width: 100%;
-  background-color: #1a1c22;
-  color: #ffffff;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 0.75em;
-  font-size: 14px;
-  margin-bottom: 1em;
-  box-sizing: border-box; 
-}
-
-button {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.5em 1em;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-right: 0.5em;
-  margin-top: 0.25em;
-  font-family: inherit;
-  transition: background-color 0.2s ease; 
-}
-
-button:hover {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #555;
-  cursor: not-allowed;
-}
-
-
-ul {
-  padding: 0;
-  list-style: none;
-}
-
-li {
-  background-color: #1a1c22;
-  border-radius: 8px;
-  padding: 1em;
-  margin-bottom: 1em;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start; 
-}
-
-.sidebar ul li.sidebar-challenge-item { /* Target specific sidebar challenge items */
-  padding: 0.75em 1em; 
-  margin-bottom: 0.5em; 
-  background-color: #1f1f26;
-  border-radius: 5px;
-  color: #eee;
-  transition: background-color 0.2s ease, border-left 0.2s ease; /* Added border-left transition */
-  border-left: 3px solid transparent; /* For selected state indicator */
-  cursor: pointer; /* Added cursor pointer here */
-}
-
-.sidebar ul li.sidebar-challenge-item:hover {
-  background-color: #2a2f3a;
-}
-
-.sidebar ul li.sidebar-challenge-item.selected { /* Style for selected challenge */
-  background-color: #2563eb; /* Example selected color - blue */
-  color: #ffffff;
-  border-left: 3px solid #60a5fa; /* Lighter blue indicator */
-}
-.sidebar ul li.sidebar-challenge-item.selected strong {
-    color: #ffffff; /* Ensure title is white when selected */
-}
-
-
-img {
-  width: 60px;
-  height: auto;
-  border-radius: 5px;
-  margin-right: 1em;
-}
-
-h1,h2,h3 { /* h1 is no longer used for title, but keep for other headings */
-  margin-top: 0;
-  margin-bottom: 0.75rem; 
-}
-
-a {
-  color: #d1d5db;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 0.2s ease;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 500;
-}
-
-a:hover {
-  text-decoration: underline;
-  color: #93c5fd;
-}
-
-strong {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 0.25em;
-  color: #f1f1f1; /* Default strong color */
-}
-
-li div {
-  flex: 1;
-  padding-left: 0.5em;
-  min-width: 0; 
-}
-
-li img {
-  flex-shrink: 0;
-}
-
-.profile-display {
-  display: flex;
-  align-items: center;
-  margin: 1rem 0;
-  gap: 0.75rem;
-  cursor: pointer;
-  padding: 0.5rem; 
-  border-radius: 6px; 
-  transition: background-color 0.2s ease; 
-}
-
-.profile-display:hover {
-  background-color: #1f1f26; 
-}
-
-.profile-display img.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #444;
-}
-
-.profile-display span {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #f1f1f1;
-}
-
-.button-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.awc-link {
-  margin-top: 8px; 
-}
-
-.back-button {
-  margin-bottom: 1rem;
-}
-
-
-.help-button {
+.sidebar-bottom-controls {
   position: absolute;
   bottom: 20px;
-  left: 20px;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.5em 1em;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 500;
+  left: 20px; 
+  display: flex;
+  gap: 8px; 
   z-index: 10; 
 }
 
+.help-button {
+
+  background-color: #3b82f6; 
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
 .help-button:hover {
   background-color: #2563eb;
 }
 
-
-.dialog-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999; 
-}
-
-.dialog-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5); 
-}
-
-.dialog-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.dialog-panel {
-  background-color: #1a1c22; 
-  color: #ffffff;
-  max-width: 600px; 
-  width: 100%;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  transform-origin: center center;
-  max-height: 80vh; 
-  overflow-y: auto; 
-}
-.dialog-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-
-.dialog-description {
-  font-size: 0.9rem;
-  line-height: 1.5; 
-  margin-bottom: 1rem;
-}
-.dialog-description p { /* Style for the intro p tag */
-    margin-bottom: 1em;
-}
-
-.dialog-list {
-  padding-left: 0; /* Remove default ul padding */
-  margin: 0;
-  list-style: none; /* Remove default list style from outer ul */
-}
-
-.dialog-list > li { /* Target direct children li of .dialog-list */
-  background-color: transparent; 
-  padding: 0.25em 0; 
-  margin-bottom: 0.8rem; /* Increased spacing between main points */
-  display: block; /* Ensure li takes full width */
-}
-
-.dialog-list > li > ul { /* Target nested ul (for Add Challenge, Status Parsing etc.) */
-  list-style-type: disc; /* Use disc for inner points */
-  list-style-position: outside; /* Standard positioning */
-  padding-left: 1.5em; /* Indent inner points */
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
-
-.dialog-list > li > ul > li { /* Target li inside nested ul */
-  margin-bottom: 0.4rem; /* Spacing between sub-items */
-  padding: 0;
-  background-color: transparent;
-  display: list-item; /* Ensure list item markers are shown for sub-items */
-}
-.dialog-list > li > ul > li > ul { /* For third-level list (e.g., under Status Parsing) */
-  list-style-type: circle; /* Use circle for deeper nested points */
-  padding-left: 1.5em;
-  margin-top: 0.3em;
-  margin-bottom: 0.3em;
-}
-.dialog-list > li > ul > li > ul > li {
-    margin-bottom: 0.2rem;
-}
-.dialog-list code { /* Style for <code> elements in dialog */
-    background-color: #2a2d34;
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-size: 0.85em;
-}
-
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem; 
-}
-
-.dialog-close-btn {
-  background-color: #3b82f6;
-  color: #ffffff;
-  border: none;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+.title-toggle-button {
+  padding: 0.5em 1em;
   border-radius: 5px;
+  border: none;
+  color: white;
   cursor: pointer;
-}
-
-.dialog-close-btn:hover {
-  background-color: #2563eb;
-}
-
-.challenge-add-errors {
-  background-color: #2a1a1a; 
-  color: #ffcccc; 
-  padding: 1em;
-  margin-top: 1em;
-  margin-bottom: 1em; 
-  border-radius: 6px;
-  border: 1px solid #c53030; 
-}
-
-.challenge-add-errors h4 {
-  margin-top: 0;
-  margin-bottom: 0.5em;
-  color: #fc8181; 
-}
-
-.challenge-add-errors p.error-item { /* Target specific error paragraphs */
-  margin: 0.25em 0;
-  font-size: 0.9em;
-}
-
-/* Empty State Styling */
-.empty-state-container {
-  text-align: center;
-  padding: 2rem 1rem;
-  margin: 1rem 0;
-  background-color: #1a1c22; /* Slightly different from list item bg */
-  border-radius: 8px;
-  border: 1px dashed #2a2d34; /* Dashed border for distinction */
-  color: #888e99; /* Muted text color */
-}
-
-.empty-state-message {
-  font-size: 1.1rem;
   font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #b0b8c4; /* Slightly brighter for main message */
+  transition: background-color 0.2s ease;
+  white-space: nowrap; 
 }
 
-.empty-state-submessage {
-  font-size: 0.9rem;
+
+.title-toggle-button.toggle-active-romaji {
+  background-color: #6b7280; 
 }
+.title-toggle-button.toggle-active-romaji:hover {
+  background-color: #4b5563; 
+}
+
+
+.title-toggle-button.toggle-active-english {
+  background-color: #3b82f6; 
+}
+.title-toggle-button.toggle-active-english:hover {
+  background-color: #2563eb; 
+}
+
+
+
+.refresh-challenge-btn {
+  background-color: #10b981; 
+  font-size: 0.9em;
+  padding: 0.4em 0.8em;
+}
+.refresh-challenge-btn:hover {
+  background-color: #059669;
+}
+.refresh-challenge-btn:disabled {
+  background-color: #555;
+}
+
+/* Dialog styles */
+.dialog-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; }
+.dialog-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); }
+.dialog-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.dialog-panel { background-color: #1a1c22; color: #ffffff; max-width: 600px; width: 100%; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); transform-origin: center center; max-height: 80vh; overflow-y: auto; }
+.dialog-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
+.dialog-description { font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem; }
+.dialog-description p { margin-bottom: 1em; }
+.dialog-list { padding-left: 0; margin: 0; list-style: none; }
+.dialog-list > li { background-color: transparent; padding: 0.25em 0; margin-bottom: 0.8rem; display: block; }
+.dialog-list > li > ul { list-style-type: disc; list-style-position: outside; padding-left: 1.5em; margin-top: 0.5em; margin-bottom: 0.5em; }
+.dialog-list > li > ul > li { margin-bottom: 0.4rem; padding: 0; background-color: transparent; display: list-item; }
+.dialog-list > li > ul > li > ul { list-style-type: circle; padding-left: 1.5em; margin-top: 0.3em; margin-bottom: 0.3em; }
+.dialog-list > li > ul > li > ul > li { margin-bottom: 0.2rem; }
+.dialog-list code { background-color: #2a2d34; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.85em; }
+.dialog-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+.dialog-clear-all-btn { background-color: #ef4444; color: white; }
+.dialog-clear-all-btn:hover { background-color: #dc2626; }
+.dialog-close-btn { background-color: #3b82f6; color: #ffffff; border: none; padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 5px; cursor: pointer; }
+.dialog-close-btn:hover { background-color: #2563eb; }
+
+.challenge-add-errors { background-color: #2a1a1a; color: #ffcccc; padding: 1em; margin-top: 1em; margin-bottom: 1em; border-radius: 6px; border: 1px solid #c53030; }
+.challenge-add-errors h4 { margin-top: 0; margin-bottom: 0.5em; color: #fc8181; }
+.challenge-add-errors p.error-item { margin: 0.25em 0; font-size: 0.9em; }
+
+.empty-state-container { text-align: center; padding: 2rem 1rem; margin: 1rem 0; background-color: #1a1c22; border-radius: 8px; border: 1px dashed #2a2d34; color: #888e99; }
+.empty-state-message { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem; color: #b0b8c4; }
+.empty-state-submessage { font-size: 0.9rem; }
