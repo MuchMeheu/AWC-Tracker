@@ -12,23 +12,61 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #444 #1a1a1a;
+  /* scrollbar-width and scrollbar-color moved to individual panels */
 }
+
+.sidebar, .main, .rightbar {
+  overflow-y: auto;
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #444 #1a1a1a; /* For Firefox */
+}
+
+.sidebar::-webkit-scrollbar,
+.main::-webkit-scrollbar,
+.rightbar::-webkit-scrollbar {
+  width: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.sidebar:hover::-webkit-scrollbar,
+.main:hover::-webkit-scrollbar,
+.rightbar:hover::-webkit-scrollbar {
+  opacity: 1;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.main::-webkit-scrollbar-track,
+.rightbar::-webkit-scrollbar-track {
+  background: #1a1a1a; 
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.main::-webkit-scrollbar-thumb,
+.rightbar::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 10px;
+  border: 2px solid #1a1a1a; /* Creates a gap effect */
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.main::-webkit-scrollbar-thumb:hover,
+.rightbar::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
 
 .sidebar {
   width: 240px;
   background-color: #111317;
   padding: 1rem;
   border-right: 1px solid #2a2d34;
-  overflow-y: auto;
   position: relative; /* so that .help-button can be absolute at bottom-left */
 }
 
 .main {
   flex: 1;
   padding: 2rem;
-  overflow-y: auto;
   background-color: #0f1117;
 }
 
@@ -37,7 +75,6 @@ body {
   background-color: #111317;
   padding: 1rem;
   border-left: 1px solid #2a2d34;
-  overflow-y: auto;
 }
 
 textarea,
@@ -50,6 +87,7 @@ input[type="text"] {
   padding: 0.75em;
   font-size: 14px;
   margin-bottom: 1em;
+  box-sizing: border-box; /* Added for better width handling with padding */
 }
 
 button {
@@ -62,11 +100,18 @@ button {
   margin-right: 0.5em;
   margin-top: 0.25em;
   font-family: inherit;
+  transition: background-color 0.2s ease; /* Added transition */
 }
 
 button:hover {
   background-color: #2563eb;
 }
+
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
 
 ul {
   padding: 0;
@@ -80,15 +125,16 @@ li {
   margin-bottom: 1em;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: flex-start; /* Changed from center to align items nicely if one div is taller */
 }
 
 .sidebar ul li {
-  padding: 0.5em;
-  margin-bottom: 0.25em;
+  padding: 0.75em 1em; /* Increased padding slightly */
+  margin-bottom: 0.5em; /* Increased margin slightly */
   background-color: #1f1f26;
   border-radius: 5px;
   color: #eee;
+  transition: background-color 0.2s ease; /* Added transition */
 }
 
 .sidebar ul li:hover {
@@ -104,6 +150,7 @@ img {
 
 h1,h2,h3 {
   margin-top: 0;
+  margin-bottom: 0.75rem; /* Added default bottom margin */
 }
 
 a {
@@ -133,6 +180,7 @@ strong {
 li div {
   flex: 1;
   padding-left: 0.5em;
+  min-width: 0; /* Fix for potential flex overflow with long text */
 }
 
 li img {
@@ -146,6 +194,13 @@ li img {
   margin: 1rem 0;
   gap: 0.75rem;
   cursor: pointer;
+  padding: 0.5rem; /* Added padding */
+  border-radius: 6px; /* Added border-radius */
+  transition: background-color 0.2s ease; /* Added transition */
+}
+
+.profile-display:hover {
+  background-color: #1f1f26; /* Added hover effect */
 }
 
 .profile-display img.avatar {
@@ -170,37 +225,14 @@ li img {
 }
 
 .awc-link {
-  margin-top: 6px;
+  margin-top: 8px; /* Increased margin top */
 }
 
 .back-button {
   margin-bottom: 1rem;
 }
 
-.App::-webkit-scrollbar {
-  width: 8px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.App:hover::-webkit-scrollbar {
-  opacity: 1;
-}
-
-.App::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-
-.App::-webkit-scrollbar-thumb {
-  background-color: #444;
-  border-radius: 10px;
-  border: 2px solid #1a1a1a;
-}
-
-.App::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
-
+/* Removed .App::-webkit-scrollbar styles as they are now panel-specific */
 
 .help-button {
   position: absolute;
@@ -236,7 +268,7 @@ li img {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.5); /* Increased backdrop opacity slightly */
 }
 
 .dialog-container {
@@ -254,12 +286,14 @@ li img {
 .dialog-panel {
   background-color: #1a1c22; 
   color: #ffffff;
-  max-width: 500px;
+  max-width: 600px; /* Increased max-width for help dialog */
   width: 100%;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   transform-origin: center center;
+  max-height: 80vh; /* Added max-height */
+  overflow-y: auto; /* Allow scrolling in dialog if content overflows */
 }
 .dialog-title {
   font-size: 1.25rem;
@@ -269,25 +303,36 @@ li img {
 
 .dialog-description {
   font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.5; /* Increased line-height */
   margin-bottom: 1rem;
 }
 
 .dialog-list {
-  list-style-type: disc;
-  list-style-position: inside;
-  padding-left: 0;
+  padding-left: 1em; /* Indent list items */
   margin: 0;
 }
 
 .dialog-list li {
-  margin-bottom: 0.5rem;
+  background-color: transparent; /* Override general li style */
+  padding: 0.25em 0; /* Adjust padding */
+  margin-bottom: 0.6rem; /* Spacing between items */
+  display: list-item; /* Ensure list item markers are shown */
 }
+
+.dialog-list ul { /* For nested lists */
+  margin-top: 0.4rem;
+  padding-left: 1.2em;
+}
+
+.dialog-list ul li {
+  margin-bottom: 0.4rem;
+}
+
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.5rem;
+  margin-top: 1rem; /* Increased margin-top */
 }
 
 .dialog-close-btn {
@@ -302,4 +347,26 @@ li img {
 
 .dialog-close-btn:hover {
   background-color: #2563eb;
+}
+
+/* Styles for Add Challenge Errors */
+.challenge-add-errors {
+  background-color: #2a1a1a; /* Darker red background */
+  color: #ffcccc; /* Lighter red text for readability */
+  padding: 1em;
+  margin-top: 1em;
+  margin-bottom: 1em; /* Added margin bottom */
+  border-radius: 6px;
+  border: 1px solid #c53030; /* Red border */
+}
+
+.challenge-add-errors h4 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  color: #fc8181; /* Brighter red for heading */
+}
+
+.challenge-add-errors p {
+  margin: 0.25em 0;
+  font-size: 0.9em;
 }
