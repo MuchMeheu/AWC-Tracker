@@ -3,7 +3,16 @@ import './App.css';
 import awcLogo from './assets/ALAWClogo.png';
 import { Description, Dialog, DialogPanel, DialogTitle, Transition  } from '@headlessui/react'
 const CLIENT_ID = 27290;
-const ANILIST_API_DELAY_MS = 3000;
+const ANILIST_API_DELAY_MS = 4000; // Or your current preferred delay
+
+// Helper component for empty states
+const EmptyState = ({ message, subMessage }) => (
+  <div className="empty-state-container">
+    <p className="empty-state-message">{message}</p>
+    {subMessage && <p className="empty-state-submessage">{subMessage}</p>}
+  </div>
+);
+
 
 function App() {
   const [token, setToken] = useState(null);
@@ -18,7 +27,7 @@ function App() {
         return JSON.parse(saved);
       } catch (error) {
         console.error("Failed to parse challenges from localStorage:", error);
-        localStorage.removeItem('awcChallenges'); // Clear corrupted data
+        localStorage.removeItem('awcChallenges');
         return [];
       }
     }
@@ -67,7 +76,6 @@ function App() {
           setUserAvatar(data.data.Viewer.avatar.medium);
         } else {
           console.error("Failed to fetch user data:", data.errors);
-          // Potentially handle token expiry or other auth issues here
         }
       })
       .catch(err => {
@@ -110,7 +118,7 @@ function App() {
   };
 
   const fetchUserAnimeList = async () => {
-    if (!username) { // Ensure username is available before fetching list
+    if (!username) {
         console.warn("Username not available for fetching anime list.");
         return { completedIds: new Set(), currentIds: new Set() };
     }
@@ -166,7 +174,7 @@ function App() {
           const statusSymbol = statusMatch[1];
           const statusChallenge = (statusSymbol === '✔️' || statusSymbol === 'X') ? 'complete'
                                   : (statusSymbol === '⭐') ? 'ongoing'
-                                  : 'incomplete'; // Includes ❌ and O
+                                  : 'incomplete';
           const titleMatch = line.match(/__(.+?)__/);
           const title = titleMatch ? titleMatch[1] : 'Unknown';
           const urlLine = lines[i + 1] || '';
@@ -178,7 +186,7 @@ function App() {
           if (animeId) {
             entries.push({
               animeId,
-              title, // This is title from raw code, usually same as romajiTitle after fetch
+              title,
               statusChallenge,
               startDate: startMatch ? startMatch[1] : null,
               endDate: endMatch ? endMatch[1] : null
@@ -202,7 +210,7 @@ function App() {
                                    : 'incomplete';
             enriched.push({
               ...entry,
-              id: i, // Using index as ID for entries within a challenge
+              id: i,
               romajiTitle: info.title.romaji,
               image: info.coverImage.medium,
               statusAniList
@@ -213,8 +221,8 @@ function App() {
           localErrors.push(`Error processing anime ID ${entry.animeId}: ${err.message}`);
           enriched.push(null);
         }
-        if (i < entries.length - 1) { // Avoid delay after the last item
-          await new Promise(res => setTimeout(res, ANILIST_API_DELAY_MS)); // Rate limiting
+        if (i < entries.length - 1) {
+          await new Promise(res => setTimeout(res, ANILIST_API_DELAY_MS));
         }
       }
       
@@ -222,13 +230,11 @@ function App() {
 
       const filtered = enriched.filter(Boolean);
       if (filtered.length === 0 && entries.length > 0) {
-        // All entries failed to process, don't add an empty challenge
-        if (localErrors.length === 0) { // If no specific errors, add a generic one
+        if (localErrors.length === 0) {
             setAddChallengeErrors(prev => [...prev, "No valid anime entries could be processed from the provided code."]);
         }
-        return; // Stop here
+        return;
       }
-
 
       const newChallenge = {
         id: Date.now(),
@@ -260,14 +266,13 @@ function App() {
   const generateChallengeCode = (challenge) => {
     const header = `#__${challenge.title}__\n\nChallenge Start Date: YYYY-MM-DD\nChallenge Finish Date: YYYY-MM-DD\nLegend: [✔️] = Completed [❌] = Not Completed [⭐] = Ongoing\n\n<hr>\n`;
     const blocks = challenge.entries.map((entry, i) => {
-      // Determine symbol based on AniList status first, then challenge status if not on AniList
       let symbol;
       if (entry.statusAniList === 'complete') {
         symbol = '✔️';
       } else if (entry.statusAniList === 'ongoing') {
         symbol = '⭐';
-      } else { // Not on AniList or incomplete on AniList, use challenge status
-        if (entry.statusChallenge === 'complete') symbol = '✔️'; // e.g. if manually marked complete
+      } else {
+        if (entry.statusChallenge === 'complete') symbol = '✔️';
         else if (entry.statusChallenge === 'ongoing') symbol = '⭐';
         else symbol = '❌';
       }
@@ -304,10 +309,6 @@ function App() {
   }, [challenges]);
 
   const getEffectiveChallengeStatus = (anime) => {
-    // If an anime is in multiple challenges, its "challenge status" for global view:
-    // if 'complete' in ANY challenge -> 'complete'
-    // else if 'ongoing' in ANY challenge -> 'ongoing'
-    // else -> 'incomplete'
     if (anime.challengeStatuses.includes('complete')) return 'complete';
     if (anime.challengeStatuses.includes('ongoing')) return 'ongoing';
     return 'incomplete';
@@ -319,37 +320,45 @@ function App() {
       <button className="back-button" onClick={() => setSelectedChallenge(null)}>⬅️ Back</button>
       <h2>{challenge.title}</h2>
       {challenge.postUrl && <p>Post URL: <a href={challenge.postUrl} target="_blank" rel="noreferrer">{challenge.postUrl}</a></p>}
-      <ul>
-        {challenge.entries.map((entry) => (
-          <li key={entry.id}>
-            <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
-              <img src={entry.image} alt={entry.romajiTitle} />
-            </a>
-            <div>
+      {challenge.entries.length === 0 ? (
+        <EmptyState message="This challenge has no anime entries." subMessage="It might have been added with invalid data or all entries failed to process."/>
+      ) : (
+        <ul>
+          {challenge.entries.map((entry) => (
+            <li key={entry.id}>
               <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
-                <strong>{entry.romajiTitle}</strong>
-              </a><br />
-              AniList: {entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}
-              {entry.statusAniList === 'complete' && entry.statusChallenge === 'incomplete' && (
-                <div style={{color: '#facc15'}}>⚠️ Needs post update (mark as ✔️ in challenge)</div>
-              )}
-               {entry.statusAniList === 'incomplete' && entry.statusChallenge === 'complete' && (
-                <div style={{color: '#60a5fa'}}>ℹ️ Marked complete in challenge, but not on AniList.</div>
-              )}
+                <img src={entry.image} alt={entry.romajiTitle} />
+              </a>
               <div>
-                Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}
+                <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
+                  <strong>{entry.romajiTitle}</strong>
+                </a><br />
+                AniList: {entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}
+                {entry.statusAniList === 'complete' && entry.statusChallenge === 'incomplete' && (
+                  <div style={{color: '#facc15'}}>⚠️ Needs post update (mark as ✔️ or X in challenge)</div>
+                )}
+                {entry.statusAniList === 'incomplete' && entry.statusChallenge === 'complete' && (
+                  <div style={{color: '#60a5fa'}}>ℹ️ Marked complete in challenge, but not on AniList.</div>
+                )}
+                <div>
+                  Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 
   return (
     <div className="App">
       <div className="sidebar">
-        <h1 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setSelectedChallenge(null)}>
+        <div // Changed h1 to div for better click target area if needed, kept styling
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', marginBottom: '1rem' }} 
+          onClick={() => setSelectedChallenge(null)}
+          className="app-title-container" // Added class for potential hover styling
+        >
             <img src={awcLogo} alt="AWC Logo"
               style={{
                 width: 80,
@@ -358,8 +367,8 @@ function App() {
                 objectFit: 'contain'
               }}
             />
-            AWC Tracker
-          </h1>
+            <span className="app-title-text">AWC Tracker</span> {/* Moved text to span for styling */}
+        </div>
         {!token ? (
           <button onClick={loginAniList}>🔑 Login with AniList</button>
         ) : username ? (
@@ -368,16 +377,25 @@ function App() {
             <span>{username}</span>
           </a>
         ) : (
-            <p>Loading user...</p>
+            <p className="loading-user-text">Loading user...</p>
         )}
         <h3>Saved Challenges</h3>
-        <ul>
-          {challenges.map(ch => (
-            <li key={ch.id} onClick={() => setSelectedChallenge(ch)} style={{ cursor: 'pointer' }}>
-              <strong>{ch.title}</strong>
-            </li>
-          ))}
-        </ul>
+        {challenges.length === 0 ? (
+          <EmptyState message="No challenges saved yet." subMessage="Add one using the form in the main panel." />
+        ) : (
+          <ul>
+            {challenges.map(ch => (
+              <li 
+                key={ch.id} 
+                onClick={() => setSelectedChallenge(ch)} 
+                // Add className conditionally for selected item
+                className={`sidebar-challenge-item ${selectedChallenge?.id === ch.id ? 'selected' : ''}`}
+              >
+                <strong>{ch.title}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
         <button className="help-button" onClick={() => setIsOpen(true)}>❓ Help</button>
       </div>
 
@@ -404,41 +422,44 @@ function App() {
             {addChallengeErrors.length > 0 && (
               <div className="challenge-add-errors">
                 <h4>Encountered issues while adding:</h4>
-                {addChallengeErrors.map((err, i) => <p key={i}>{err}</p>)}
+                {addChallengeErrors.map((err, i) => <p key={i} className="error-item">{err}</p>)}
               </div>
             )}
 
             <h2>📊 Global Tracker</h2>
-            {Object.keys(globalAnime).length === 0 && challenges.length > 0 && <p>No anime found in current challenges, or data is still processing.</p>}
-            {challenges.length === 0 && <p>Add some challenges to see the global tracker.</p>}
-            
-            <ul>
-              {Object.values(globalAnime).map(anime => {
-                const effectiveChallengeStatus = getEffectiveChallengeStatus(anime);
-                return (
-                  <li key={anime.animeId}>
-                    <a href={`https://anilist.co/anime/${anime.animeId}`} target="_blank" rel="noreferrer">
-                      <img src={anime.image} alt={anime.romajiTitle} />
-                    </a>
-                    <div>
-                      <a href={`https://anilist.co/anime/${anime.animeId}`} target="_blank" rel="noreferrer">
-                        <strong>{anime.romajiTitle}</strong>
-                      </a><br />
-                      AniList: {anime.statusAniList === 'complete' ? '✅' : anime.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge(s): {effectiveChallengeStatus === 'complete' ? '✅' : effectiveChallengeStatus === 'ongoing' ? '⭐' : '❌'}
-                      {anime.statusAniList === 'complete' && effectiveChallengeStatus === 'incomplete' && (
-                        <div style={{color: '#facc15'}}>⚠️ Needs post update in at least one challenge</div>
-                      )}
-                       {anime.statusAniList === 'incomplete' && effectiveChallengeStatus === 'complete' && (
-                        <div style={{color: '#60a5fa'}}>ℹ️ Marked complete in a challenge, but not on AniList.</div>
-                      )}
-                      {anime.count > 1 && (
-                        <div>🔁 In {anime.count} challenges</div>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            {challenges.length === 0 && Object.keys(globalAnime).length === 0 ? (
+                <EmptyState message="No challenges added." subMessage="Add some challenges to see the global tracker." />
+            ) : Object.keys(globalAnime).length === 0 && challenges.length > 0 ? (
+                 <EmptyState message="No anime found in current challenges." subMessage="Entries might be processing or challenges are empty." />
+            ) : (
+                <ul>
+                {Object.values(globalAnime).map(anime => {
+                    const effectiveChallengeStatus = getEffectiveChallengeStatus(anime);
+                    return (
+                    <li key={anime.animeId}>
+                        <a href={`https://anilist.co/anime/${anime.animeId}`} target="_blank" rel="noreferrer">
+                        <img src={anime.image} alt={anime.romajiTitle} />
+                        </a>
+                        <div>
+                        <a href={`https://anilist.co/anime/${anime.animeId}`} target="_blank" rel="noreferrer">
+                            <strong>{anime.romajiTitle}</strong>
+                        </a><br />
+                        AniList: {anime.statusAniList === 'complete' ? '✅' : anime.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge(s): {effectiveChallengeStatus === 'complete' ? '✅' : effectiveChallengeStatus === 'ongoing' ? '⭐' : '❌'}
+                        {anime.statusAniList === 'complete' && effectiveChallengeStatus === 'incomplete' && (
+                            <div style={{color: '#facc15'}}>⚠️ Needs post update in at least one challenge</div>
+                        )}
+                        {anime.statusAniList === 'incomplete' && effectiveChallengeStatus === 'complete' && (
+                            <div style={{color: '#60a5fa'}}>ℹ️ Marked complete in a challenge, but not on AniList.</div>
+                        )}
+                        {anime.count > 1 && (
+                            <div>🔁 In {anime.count} challenges</div>
+                        )}
+                        </div>
+                    </li>
+                    );
+                })}
+                </ul>
+            )}
           </>
         ) : (
           renderChallengeDetail(selectedChallenge)
@@ -447,40 +468,43 @@ function App() {
 
       <div className="rightbar">
         <h2>📋 Manage</h2>
-        {challenges.length === 0 && <p>No challenges added yet.</p>}
-        <ul>
-          {challenges.map((ch) => {
-            const completedOnAniList = ch.entries.filter((e) => e.statusAniList === 'complete').length;
-            const total = ch.entries.length;
-            return (
-              <li key={ch.id}>
-                <div>
-                  <strong>{ch.title}</strong><br />
-                  AniList ✅: {completedOnAniList}/{total}
-                  <div className="button-row">
-                    <button onClick={() => handleCopyPostUrl(ch)} disabled={!ch.postUrl}>
-                      {copiedUrlId === ch.id ? '✅ Post URL' : '🔗 Copy URL'}
-                    </button>
-                    <button onClick={() => handleCopyChallengeCode(ch)}>
-                      {copiedChallengeId === ch.id ? '✅ Code' : '📋 Copy Code'}
-                    </button>
-                  </div>
-                  {ch.postUrl && (
-                    <div className="awc-link">
-                      <a href={`https://awc.moe/challenges/editor?url=${encodeURIComponent(ch.postUrl)}`} target="_blank" rel="noreferrer">
-                        🌐 AWC Editor
-                      </a>
+        {challenges.length === 0 ? (
+          <EmptyState message="No challenges to manage." subMessage="Add challenges first."/>
+        ) : (
+          <ul>
+            {challenges.map((ch) => {
+                const completedOnAniList = ch.entries.filter((e) => e.statusAniList === 'complete').length;
+                const total = ch.entries.length;
+                return (
+                <li key={ch.id}>
+                    <div>
+                    <strong>{ch.title}</strong><br />
+                    AniList ✅: {completedOnAniList}/{total}
+                    <div className="button-row">
+                        <button onClick={() => handleCopyPostUrl(ch)} disabled={!ch.postUrl}>
+                        {copiedUrlId === ch.id ? '✅ Post URL' : '🔗 Copy URL'}
+                        </button>
+                        <button onClick={() => handleCopyChallengeCode(ch)}>
+                        {copiedChallengeId === ch.id ? '✅ Code' : '📋 Copy Code'}
+                        </button>
                     </div>
-                  )}
-                </div>
-                <button onClick={() => deleteChallenge(ch.id)} title="Delete Challenge">🗑️</button>
-              </li>
-            );
-          })}
-        </ul>
-        
+                    {ch.postUrl && (
+                        <div className="awc-link">
+                        <a href={`https://awc.moe/challenges/editor?url=${encodeURIComponent(ch.postUrl)}`} target="_blank" rel="noreferrer">
+                            🌐 AWC Editor
+                        </a>
+                        </div>
+                    )}
+                    </div>
+                    <button onClick={() => deleteChallenge(ch.id)} title="Delete Challenge">🗑️</button>
+                </li>
+                );
+            })}
+          </ul>
+        )}
       </div>
 
+      {/* Dialog Transition remains the same */}
       <Transition appear={true} show={isOpen} as={Fragment}>
         <Dialog as="div" className="dialog-root" onClose={() => setIsOpen(false)}>
           <Transition
@@ -488,7 +512,7 @@ function App() {
             as={Fragment}
             enter="ease-out duration-200"
             enterFrom="opacity-0"
-            enterTo="opacity-30" // This applies to backdrop
+            enterTo="opacity-30" 
             leave="ease-in duration-150"
             leaveFrom="opacity-30"
             leaveTo="opacity-0"
@@ -506,31 +530,57 @@ function App() {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="dialog-panel">
+            {/* ... DialogPanel content from previous response (with accurate status parsing info) ... */}
+            <DialogPanel className="dialog-panel">
                 <DialogTitle className="dialog-title">
                   How to Use AWC Tracker
                 </DialogTitle>
                 <Description as="div" className="dialog-description">
+                  <p>This tool helps you track your Anime Watching Challenge (AWC) progress by parsing your forum posts and comparing them with your AniList activity.</p>
                   <ul className="dialog-list">
-                    <li>🔑 Click “Login with AniList” to connect your account. This allows the tracker to check your anime list statuses.</li>
-                    <li>➕ Paste your challenge code (from AWC forum posts) into the text area. Optionally add the forum post URL. Click “Save Challenge.”</li>
-                    <li>📊 The "Global Tracker" shows all anime from your saved challenges, indicating their status on AniList vs. in your challenges.</li>
-                    <li>📋 In the "Manage" section, for each challenge:
+                    <li><strong>🔑 Login with AniList:</strong> Click “Login with AniList” to connect your account. This allows the tracker to check your current anime list statuses on AniList. Your token is stored locally in your browser.</li>
+                    <li><strong>➕ Add Challenge:</strong>
                         <ul>
-                            <li>Copy the post URL (if you added one).</li>
-                            <li>Copy an updated challenge code to paste back into forums. The code uses your current AniList statuses.</li>
-                            <li>Link to AWC Editor (if post URL is provided).</li>
-                            <li>Delete a challenge.</li>
+                            <li>Paste your full challenge code (e.g., from an AWC forum post) into the text area.</li>
+                            <li>Optionally, add the URL of your forum post for easy reference and linking to the AWC Editor.</li>
+                            <li>Click “Save Challenge.” The app will then fetch details for each anime from AniList.</li>
                         </ul>
                     </li>
-                    <li>🗒️ Challenge Parsing:
+                    <li><strong>❗ Status Parsing from Your Post (Important!):</strong>
                         <ul>
-                            <li>Titles are best parsed if they start with `#` (e.g. `# My Challenge`).</li>
-                            <li>Entry format: `[STATUS] __Anime Title__`, then `https://anilist.co/anime/ID/` on the next line, then optional `Start: YYYY-MM-DD` and `Finish: YYYY-MM-DD` on the line after.</li>
-                            <li>Use status symbols: [✔️] for completed, [❌] for not completed (incomplete), [⭐] for ongoing.</li>
+                            <li>The tracker parses status symbols from your challenge post within square brackets. Supported symbols and their interpretation:
+                                <ul>
+                                    <li><code>[✔️]</code> or <code>[X]</code> (uppercase X): Parsed as 'Completed'</li>
+                                    <li><code>[⭐]</code>: Parsed as 'Ongoing'</li>
+                                    <li><code>[❌]</code> or <code>[O]</code> (uppercase O): Parsed as 'Incomplete' / 'Not Completed'</li>
+                                </ul>
+                            </li>
+                            <li>For best visual consistency and clarity in your posts, using the emoji symbols (✔️, ❌, ⭐) is recommended, but the letter alternatives (X, O) will also be correctly processed by this tracker as described above.</li>
                         </ul>
                     </li>
-                     <li>⚠️ If an anime is "complete" on AniList but "incomplete" in your challenge (e.g. [❌]), it will be flagged to remind you to update your challenge post.</li>
+                    <li><strong>⏳ Rate Limits & Large Challenges:</strong>
+                        <ul>
+                            <li>When adding a challenge, the app fetches data for each anime from AniList one by one.</li>
+                            <li>To respect AniList's API rate limits (especially when they are in a degraded state), there's a delay between each fetch.</li>
+                            <li>This means **adding very large challenges can take some time.** Please be patient; the "Adding..." button indicates it's working.</li>
+                            <li>If AniList is under heavy load or if you add many challenges quickly, you might still encounter fetching issues. Trying again later or ensuring a stable internet connection can help.</li>
+                        </ul>
+                    </li>
+                    <li><strong>📊 Global Tracker:</strong> View a combined list of all anime from your saved challenges. It shows the status on AniList versus the effective status across your challenges.</li>
+                    <li><strong>📋 Manage Challenges:</strong>
+                        <ul>
+                            <li>Click on a saved challenge in the sidebar to view its details.</li>
+                            <li>In the right "Manage" panel, for each challenge:
+                                <ul>
+                                    <li>Copy the post URL (if you added one).</li>
+                                    <li>Copy an updated challenge code to paste back into forums. This generated code uses your *current AniList statuses* to suggest the symbols (✔️, ⭐, ❌).</li>
+                                    <li>Link to the AWC Editor (if a post URL is provided).</li>
+                                    <li>Delete a challenge.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                     <li><strong>⚠️ Discrepancies:</strong> If an anime is marked "complete" (✅) on AniList but still shows as "incomplete" (❌) in your challenge (e.g., your post used `[O]` or `[❌]`), the tracker will highlight this, reminding you to update your forum post with a 'completed' symbol like `[✔️]` or `[X]`.</li>
                   </ul>
                 </Description>
                 <div className="dialog-actions">
@@ -543,7 +593,6 @@ function App() {
           </div>
         </Dialog>
       </Transition>
-
   </div>
 );
 

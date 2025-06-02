@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+<link rel="icon" href="./assets/AWClogo.svg" type="image/svg+xml" />;
+<link rel="icon" href="../AWClogo.ico" />;
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -12,13 +12,34 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  /* scrollbar-width and scrollbar-color moved to individual panels */
 }
+
+/* App Title Styling */
+.app-title-container { /* For the div wrapping logo and title */
+  transition: background-color 0.2s ease;
+  padding: 0.5rem;
+  margin-left: -0.5rem; /* Counteract padding for alignment */
+  margin-right: -0.5rem;
+  border-radius: 6px;
+}
+.app-title-container:hover {
+  background-color: #1f1f26;
+}
+.app-title-text {
+  font-size: 1.75rem; /* Or adjust as preferred */
+  font-weight: 600;
+  /* No specific color needed, inherits from body */
+}
+.loading-user-text { /* Style for "Loading user..." text */
+  padding: 0.5rem;
+  color: #aaa;
+}
+
 
 .sidebar, .main, .rightbar {
   overflow-y: auto;
-  scrollbar-width: thin; /* For Firefox */
-  scrollbar-color: #444 #1a1a1a; /* For Firefox */
+  scrollbar-width: thin; 
+  scrollbar-color: #444 #1a1a1a; 
 }
 
 .sidebar::-webkit-scrollbar,
@@ -46,7 +67,7 @@ body {
 .rightbar::-webkit-scrollbar-thumb {
   background-color: #444;
   border-radius: 10px;
-  border: 2px solid #1a1a1a; /* Creates a gap effect */
+  border: 2px solid #1a1a1a; 
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover,
@@ -61,7 +82,7 @@ body {
   background-color: #111317;
   padding: 1rem;
   border-right: 1px solid #2a2d34;
-  position: relative; /* so that .help-button can be absolute at bottom-left */
+  position: relative; 
 }
 
 .main {
@@ -87,7 +108,7 @@ input[type="text"] {
   padding: 0.75em;
   font-size: 14px;
   margin-bottom: 1em;
-  box-sizing: border-box; /* Added for better width handling with padding */
+  box-sizing: border-box; 
 }
 
 button {
@@ -100,7 +121,7 @@ button {
   margin-right: 0.5em;
   margin-top: 0.25em;
   font-family: inherit;
-  transition: background-color 0.2s ease; /* Added transition */
+  transition: background-color 0.2s ease; 
 }
 
 button:hover {
@@ -125,21 +146,33 @@ li {
   margin-bottom: 1em;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start; /* Changed from center to align items nicely if one div is taller */
+  align-items: flex-start; 
 }
 
-.sidebar ul li {
-  padding: 0.75em 1em; /* Increased padding slightly */
-  margin-bottom: 0.5em; /* Increased margin slightly */
+.sidebar ul li.sidebar-challenge-item { /* Target specific sidebar challenge items */
+  padding: 0.75em 1em; 
+  margin-bottom: 0.5em; 
   background-color: #1f1f26;
   border-radius: 5px;
   color: #eee;
-  transition: background-color 0.2s ease; /* Added transition */
+  transition: background-color 0.2s ease, border-left 0.2s ease; /* Added border-left transition */
+  border-left: 3px solid transparent; /* For selected state indicator */
+  cursor: pointer; /* Added cursor pointer here */
 }
 
-.sidebar ul li:hover {
+.sidebar ul li.sidebar-challenge-item:hover {
   background-color: #2a2f3a;
 }
+
+.sidebar ul li.sidebar-challenge-item.selected { /* Style for selected challenge */
+  background-color: #2563eb; /* Example selected color - blue */
+  color: #ffffff;
+  border-left: 3px solid #60a5fa; /* Lighter blue indicator */
+}
+.sidebar ul li.sidebar-challenge-item.selected strong {
+    color: #ffffff; /* Ensure title is white when selected */
+}
+
 
 img {
   width: 60px;
@@ -148,9 +181,9 @@ img {
   margin-right: 1em;
 }
 
-h1,h2,h3 {
+h1,h2,h3 { /* h1 is no longer used for title, but keep for other headings */
   margin-top: 0;
-  margin-bottom: 0.75rem; /* Added default bottom margin */
+  margin-bottom: 0.75rem; 
 }
 
 a {
@@ -175,32 +208,32 @@ strong {
   font-weight: 600;
   display: block;
   margin-bottom: 0.25em;
+  color: #f1f1f1; /* Default strong color */
 }
 
 li div {
   flex: 1;
   padding-left: 0.5em;
-  min-width: 0; /* Fix for potential flex overflow with long text */
+  min-width: 0; 
 }
 
 li img {
   flex-shrink: 0;
 }
 
-/* Profile display */
 .profile-display {
   display: flex;
   align-items: center;
   margin: 1rem 0;
   gap: 0.75rem;
   cursor: pointer;
-  padding: 0.5rem; /* Added padding */
-  border-radius: 6px; /* Added border-radius */
-  transition: background-color 0.2s ease; /* Added transition */
+  padding: 0.5rem; 
+  border-radius: 6px; 
+  transition: background-color 0.2s ease; 
 }
 
 .profile-display:hover {
-  background-color: #1f1f26; /* Added hover effect */
+  background-color: #1f1f26; 
 }
 
 .profile-display img.avatar {
@@ -225,14 +258,13 @@ li img {
 }
 
 .awc-link {
-  margin-top: 8px; /* Increased margin top */
+  margin-top: 8px; 
 }
 
 .back-button {
   margin-bottom: 1rem;
 }
 
-/* Removed .App::-webkit-scrollbar styles as they are now panel-specific */
 
 .help-button {
   position: absolute;
@@ -268,7 +300,7 @@ li img {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5); /* Increased backdrop opacity slightly */
+  background-color: rgba(0, 0, 0, 0.5); 
 }
 
 .dialog-container {
@@ -286,14 +318,14 @@ li img {
 .dialog-panel {
   background-color: #1a1c22; 
   color: #ffffff;
-  max-width: 600px; /* Increased max-width for help dialog */
+  max-width: 600px; 
   width: 100%;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   transform-origin: center center;
-  max-height: 80vh; /* Added max-height */
-  overflow-y: auto; /* Allow scrolling in dialog if content overflows */
+  max-height: 80vh; 
+  overflow-y: auto; 
 }
 .dialog-title {
   font-size: 1.25rem;
@@ -303,36 +335,61 @@ li img {
 
 .dialog-description {
   font-size: 0.9rem;
-  line-height: 1.5; /* Increased line-height */
+  line-height: 1.5; 
   margin-bottom: 1rem;
+}
+.dialog-description p { /* Style for the intro p tag */
+    margin-bottom: 1em;
 }
 
 .dialog-list {
-  padding-left: 1em; /* Indent list items */
+  padding-left: 0; /* Remove default ul padding */
   margin: 0;
+  list-style: none; /* Remove default list style from outer ul */
 }
 
-.dialog-list li {
-  background-color: transparent; /* Override general li style */
-  padding: 0.25em 0; /* Adjust padding */
-  margin-bottom: 0.6rem; /* Spacing between items */
-  display: list-item; /* Ensure list item markers are shown */
+.dialog-list > li { /* Target direct children li of .dialog-list */
+  background-color: transparent; 
+  padding: 0.25em 0; 
+  margin-bottom: 0.8rem; /* Increased spacing between main points */
+  display: block; /* Ensure li takes full width */
 }
 
-.dialog-list ul { /* For nested lists */
-  margin-top: 0.4rem;
-  padding-left: 1.2em;
+.dialog-list > li > ul { /* Target nested ul (for Add Challenge, Status Parsing etc.) */
+  list-style-type: disc; /* Use disc for inner points */
+  list-style-position: outside; /* Standard positioning */
+  padding-left: 1.5em; /* Indent inner points */
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }
 
-.dialog-list ul li {
-  margin-bottom: 0.4rem;
+.dialog-list > li > ul > li { /* Target li inside nested ul */
+  margin-bottom: 0.4rem; /* Spacing between sub-items */
+  padding: 0;
+  background-color: transparent;
+  display: list-item; /* Ensure list item markers are shown for sub-items */
+}
+.dialog-list > li > ul > li > ul { /* For third-level list (e.g., under Status Parsing) */
+  list-style-type: circle; /* Use circle for deeper nested points */
+  padding-left: 1.5em;
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+.dialog-list > li > ul > li > ul > li {
+    margin-bottom: 0.2rem;
+}
+.dialog-list code { /* Style for <code> elements in dialog */
+    background-color: #2a2d34;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.85em;
 }
 
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 1rem; /* Increased margin-top */
+  margin-top: 1rem; 
 }
 
 .dialog-close-btn {
@@ -349,24 +406,45 @@ li img {
   background-color: #2563eb;
 }
 
-/* Styles for Add Challenge Errors */
 .challenge-add-errors {
-  background-color: #2a1a1a; /* Darker red background */
-  color: #ffcccc; /* Lighter red text for readability */
+  background-color: #2a1a1a; 
+  color: #ffcccc; 
   padding: 1em;
   margin-top: 1em;
-  margin-bottom: 1em; /* Added margin bottom */
+  margin-bottom: 1em; 
   border-radius: 6px;
-  border: 1px solid #c53030; /* Red border */
+  border: 1px solid #c53030; 
 }
 
 .challenge-add-errors h4 {
   margin-top: 0;
   margin-bottom: 0.5em;
-  color: #fc8181; /* Brighter red for heading */
+  color: #fc8181; 
 }
 
-.challenge-add-errors p {
+.challenge-add-errors p.error-item { /* Target specific error paragraphs */
   margin: 0.25em 0;
   font-size: 0.9em;
+}
+
+/* Empty State Styling */
+.empty-state-container {
+  text-align: center;
+  padding: 2rem 1rem;
+  margin: 1rem 0;
+  background-color: #1a1c22; /* Slightly different from list item bg */
+  border-radius: 8px;
+  border: 1px dashed #2a2d34; /* Dashed border for distinction */
+  color: #888e99; /* Muted text color */
+}
+
+.empty-state-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #b0b8c4; /* Slightly brighter for main message */
+}
+
+.empty-state-submessage {
+  font-size: 0.9rem;
 }
