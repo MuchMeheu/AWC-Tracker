@@ -2,9 +2,9 @@
 
 **Track your Anime Watching Challenge (AWC) progress with ease!**
 
-Have you ever been Annoyed about scrolling through you own forum comments, having to make an acitivity post or notes to keep track of your AWC challenges well this app is here to fix these issues.
+Have you ever been annoyed about scrolling through your own forum comments, having to make an activity post or notes to keep track of your AWC challenges? Well, this app is here to fix those issues.
 
-This web application helps you parse your AWC forum posts, Keep track of your ongoing and completed challenges, compare your challenge progress with your AniList activity, and generate updated forum codes.
+This web application helps you parse your AWC forum posts, keep track of your ongoing and completed challenges, compare your challenge progress with your AniList activity, and generate updated forum codes.
 
 **➡️ [Access the AWC Tracker Here](https://muchmeheu.github.io/AWC-Tracker/)** ⬅️
 
@@ -89,9 +89,9 @@ If you wish to run this project locally or contribute:
 
 *   **Rate Limiting:** While there's a delay implemented for AniList API calls, adding extremely large challenges or performing many actions quickly might still hit AniList's rate limits, especially if their API is in a degraded state. A more sophisticated queuing/retry mechanism could be an improvement.
 *   **CORS in Development:** If you encounter CORS issues when fetching from AniList locally, ensure you have disabled any interfering browser extensions or consider using a CORS unblocker extension *for development only*. The `proxy` setting in `package.json` is not currently configured for this project but could be added.
-*   **Different Emoji's not being recognized by the App:** Even if you think you have the right emoji's visually they may be different due to different Unicodes.
-*   **Adding a Backend to not have to parse info about animes everytime:** Want to add a backend and server storay to rely less on the API calls and to put less stress on the server and the API that is ALMOST ALWAYS in a degraded stats 🤦‍♂️.
-*   **Adding a bit of sorting and searching feature**: Self-explanatory
+*   **Different Emojis not being recognized by the App:** Even if you think you have the right emojis visually they may be different due to different Unicodes.
+*   **Adding a backend to avoid parsing info about anime every time** Want to add a backend and server storage to rely less on API calls and reduce stress on the server and the API, which is ALMOST ALWAYS in a degraded state 🤦‍♂.
+*   **Adding a bit of sorting and searching features**: Self-explanatory
 
 ---
 
