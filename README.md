@@ -10,7 +10,7 @@ This web application helps you parse your AWC forum posts, keep track of your on
 
 ---
 
-## ✨ Features
+## Features
 
 *   **Challenge Parsing:** Paste your AWC forum post code directly into the app.
 *   **AniList Integration:**
@@ -35,7 +35,7 @@ This web application helps you parse your AWC forum posts, keep track of your on
 
 ---
 
-## 🚀 How to Use
+## How to Use
 
 1.  **Visit the App:** [https://muchmeheu.github.io/AWC-Tracker/](https://muchmeheu.github.io/AWC-Tracker/)
 2.  **Login with AniList:** Click the "Login with AniList" button to authorize the app. This allows it to fetch your anime list statuses.
@@ -85,7 +85,7 @@ If you wish to run this project locally or contribute:
 
 ---
 
-## ⚠️ Known Issues / Future Ideas
+## Known Issues / Future Ideas
 
 *   **Rate Limiting:** While there's a delay implemented for AniList API calls, adding extremely large challenges or performing many actions quickly might still hit AniList's rate limits, especially if their API is in a degraded state. A more sophisticated queuing/retry mechanism could be an improvement.
 *   **CORS in Development:** If you encounter CORS issues when fetching from AniList locally, ensure you have disabled any interfering browser extensions or consider using a CORS unblocker extension *for development only*. The `proxy` setting in `package.json` is not currently configured for this project but could be added.
