@@ -1,4 +1,4 @@
-# AWC Tracker (v0.5.0)
+# AWC Tracker (v0.6.2)
 
 **Track your Anime Watching Club Challenge (AWC) progress with ease!**
 
