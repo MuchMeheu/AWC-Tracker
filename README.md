@@ -97,4 +97,4 @@ If you wish to run this project locally or contribute:
 
 ## 📢 Disclaimer
 
-This is a personal, fan-made project. It is **not** officially affiliated with, endorsed by, or connected to AWC or AniList.co. All trademarks and copyrights belong to their respective owners. Use at your own discretion.
+This is a personal, fan-made project. It is **not** officially affiliated with, endorsed by, or connected to AWC or AniList.co. All trademarks and copyrights belong to their respective owners.
