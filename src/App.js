@@ -426,7 +426,7 @@ function App() {
               <DialogPanel className="dialog-panel">
                 <DialogTitle className="dialog-title">How to Use AWC Tracker</DialogTitle>
                 <Description as="div" className="dialog-description">
-                  <p>This tool helps you track your Anime Watching Challenge (AWC) progress by parsing your forum posts and comparing them with your AniList activity.</p>
+                  <p>This tool helps you track your Anime Watching Club Challenges (AWC) progress by parsing your forum posts and comparing them with your AniList activity.</p>
                   <ul className="dialog-list">
                     <li><strong>🔑 Login with AniList:</strong> Click “Login with AniList” to connect your account. This allows the tracker to check your current anime list statuses on AniList. Your token is stored locally in your browser.</li>
                     <li><strong>➕ Add Challenge:</strong>
