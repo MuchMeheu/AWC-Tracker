@@ -4,6 +4,7 @@ import awcLogo from './assets/ALAWClogo.png';
 import githubLogoSrc from './assets/github-white-icon.png';
 import { Description, Dialog, DialogPanel, DialogTitle, Transition } from '@headlessui/react';
 
+
 const CLIENT_ID = process.env.REACT_APP_ANILIST_CLIENT_ID;
 const ANILIST_API_DELAY_MS = parseInt(process.env.REACT_APP_ANILIST_API_DELAY_MS, 10) || 4000;
 
@@ -37,6 +38,13 @@ function App() {
   const APP_VERSION = process.env.REACT_APP_VERSION;
   const GITHUB_REPO_URL = "https://github.com/MuchMeheu/AWC-Tracker";
   const MY_ANILIST_PROFILE_URL = "https://anilist.co/user/Meheu/";
+
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.body.className = theme + '-theme';
+  }, [theme]);
 
   const [challenges, setChallenges] = useState(() => {
     const saved = localStorage.getItem('awcChallenges');
@@ -289,12 +297,16 @@ function App() {
   const handleClearAllData = () => {
     if (window.confirm("ARE YOU SURE?\nThis deletes ALL saved challenges & logs you out.\nCANNOT be undone.")) {
       if (window.confirm("FINAL CONFIRMATION:\nReally delete all data?")) {
-        localStorage.removeItem('awcChallenges'); localStorage.removeItem('accessToken'); localStorage.removeItem('preferredTitle');
+        localStorage.removeItem('awcChallenges'); localStorage.removeItem('accessToken'); localStorage.removeItem('preferredTitle'); localStorage.removeItem('theme');
         setChallenges([]); setToken(null); setUsername(null); setUserAvatar(null);
         setSelectedChallenge(null); setRawCode(''); setPostUrl(''); setAddChallengeErrors([]);
-        setPreferredTitle('romaji'); setIsOpen(false); addToast("All app data cleared.", 'info');
+        setPreferredTitle('romaji'); setTheme('dark'); setIsOpen(false); addToast("All app data cleared.", 'info');
       }
     }
+  };
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
   const renderChallengeDetail = (challenge) => (
@@ -341,11 +353,29 @@ function App() {
         </div>
         {challenges.length === 0 ? (<EmptyState message="No challenges saved." subMessage="Add one in the main panel." />)
           : (<ul>{challenges.map(ch => (<li key={ch.id} onClick={() => setSelectedChallenge(ch)} className={`sidebar-challenge-item ${selectedChallenge?.id === ch.id ? 'selected' : ''}`}><strong>{ch.title}</strong></li>))}</ul>)}
+
         <div className="sidebar-bottom-controls">
           <div className="sidebar-action-buttons">
-            <button className="help-button" onClick={() => setIsOpen(true)}>❓ Help</button>
-            <button onClick={() => setPreferredTitle(p => p === 'romaji' ? 'english' : 'romaji')} className={`title-toggle-button ${preferredTitle === 'romaji' ? 'toggle-active-romaji' : 'toggle-active-english'}`} title={`Display: ${preferredTitle}. Click to switch.`}>
-              {preferredTitle === 'romaji' ? 'English' : 'Romaji'}
+            <button 
+              onClick={toggleTheme} 
+              className="theme-toggle-button icon-button" 
+              title={`Toggle ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button 
+              className="help-button" 
+              onClick={() => setIsOpen(true)} 
+              title="Help"
+            >
+              ❓ Help
+            </button>
+            <button 
+              onClick={() => setPreferredTitle(p => p === 'romaji' ? 'english' : 'romaji')} 
+              className={`title-toggle-button ${preferredTitle === 'romaji' ? 'toggle-active-romaji' : 'toggle-active-english'}`} 
+              title={`Switch to ${preferredTitle === 'romaji' ? 'English' : 'Romaji'} titles`} 
+            >
+              {preferredTitle === 'romaji' ? 'English' : 'Romaji'} 
             </button>
           </div>
            <div className="sidebar-app-meta">
@@ -458,6 +488,7 @@ function App() {
                         </ul>
                     </li>
                     <li><strong><span role="img" aria-label="books">📚</span> Title Preference:</strong> Use the "Romaji/English" button (bottom-left) to switch title languages. Your preference is saved.</li>
+                    <li><strong>☀️/🌙 Theme Toggle:</strong> Switch between light and dark themes using the sun/moon button in the sidebar.</li>
                     <li><strong><span role="img" aria-label="globe">🌐</span> Global Tracker:</strong> View a combined list of all anime from your saved challenges. It shows the status on AniList versus the effective status across your challenges.</li>
                     <li><strong>📋 Manage Challenges:</strong>
                         <ul>
