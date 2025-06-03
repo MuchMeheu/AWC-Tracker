@@ -52,7 +52,7 @@ This web application helps you parse your AWC forum posts, keep track of your on
 
 ---
 
-## 🛠️ Development Setup (For Contributors or Local Use)
+## Development Setup (For Contributors or Local Use)
 
 If you wish to run this project locally or contribute:
 
