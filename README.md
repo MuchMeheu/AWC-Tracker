@@ -1,6 +1,6 @@
 # AWC Tracker (v0.5.0)
 
-**Track your Anime Watching Challenge (AWC) progress with ease!**
+**Track your Anime Watching Club Challenge (AWC) progress with ease!**
 
 Have you ever been annoyed about scrolling through your own forum comments, having to make an activity post or notes to keep track of your AWC challenges? Well, this app is here to fix those issues.
 
