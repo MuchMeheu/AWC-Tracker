@@ -4,7 +4,6 @@ import awcLogo from './assets/ALAWClogo.png';
 import githubLogoSrc from './assets/github-white-icon.png';
 import { Description, Dialog, DialogPanel, DialogTitle, Transition } from '@headlessui/react';
 
-
 const CLIENT_ID = process.env.REACT_APP_ANILIST_CLIENT_ID;
 const ANILIST_API_DELAY_MS = parseInt(process.env.REACT_APP_ANILIST_API_DELAY_MS, 10) || 4000;
 
@@ -356,7 +355,7 @@ function App() {
 
         <div className="sidebar-bottom-controls">
           <div className="sidebar-action-buttons">
-            <button 
+             <button 
               onClick={toggleTheme} 
               className="theme-toggle-button icon-button" 
               title={`Toggle ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
@@ -373,9 +372,9 @@ function App() {
             <button 
               onClick={() => setPreferredTitle(p => p === 'romaji' ? 'english' : 'romaji')} 
               className={`title-toggle-button ${preferredTitle === 'romaji' ? 'toggle-active-romaji' : 'toggle-active-english'}`} 
-              title={`Switch to ${preferredTitle === 'romaji' ? 'English' : 'Romaji'} titles`} 
+              title={`Switch to ${preferredTitle === 'romaji' ? 'English' : 'Romaji'} titles`}
             >
-              {preferredTitle === 'romaji' ? 'English' : 'Romaji'} 
+              {preferredTitle === 'romaji' ? 'English' : 'Romaji'}
             </button>
           </div>
            <div className="sidebar-app-meta">
@@ -387,6 +386,9 @@ function App() {
                   by <a href={MY_ANILIST_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="meta-profile-link">Meheu</a>
                 </span>
                 {APP_VERSION && <span className="app-version-text">v{APP_VERSION}</span>}
+            </div>
+            <div className="app-disclaimer-footer">
+                Fan-made tool. Not official AWC or AniList.
             </div>
         </div>
       </div>
@@ -448,11 +450,28 @@ function App() {
 
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog as="div" className="dialog-root" onClose={() => setIsOpen(false)}>
-          <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <Transition.Child
+            as={Fragment}
+            enter="dialog-backdrop-enter-active"
+            enterFrom="dialog-backdrop-enter-from"
+            enterTo="dialog-backdrop-enter-to"
+            leave="dialog-backdrop-leave-active"
+            leaveFrom="dialog-backdrop-leave-from"
+            leaveTo="dialog-backdrop-leave-to"
+          >
             <div className="dialog-backdrop" />
           </Transition.Child>
+
           <div className="dialog-container">
-            <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+            <Transition.Child
+              as={Fragment}
+              enter="dialog-panel-enter-active"
+              enterFrom="dialog-panel-enter-from"
+              enterTo="dialog-panel-enter-to"
+              leave="dialog-panel-leave-active"
+              leaveFrom="dialog-panel-leave-from"
+              leaveTo="dialog-panel-leave-to"
+            >
               <DialogPanel className="dialog-panel">
                 <DialogTitle className="dialog-title">How to Use AWC Tracker</DialogTitle>
                 <Description as="div" className="dialog-description">

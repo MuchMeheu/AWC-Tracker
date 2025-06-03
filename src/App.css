@@ -288,14 +288,15 @@ li.anime-entry-item {
   margin-top: auto; padding-top: 1rem;
   border-top: 1px solid var(--border-secondary);
   width: 100%; display: flex; flex-direction: column;
-  align-items: center; gap: 10px; z-index: 10; flex-shrink: 0;
+  align-items: center; gap: 8px;
+  z-index: 10; flex-shrink: 0;
 }
 .sidebar-action-buttons {
   display: flex;
   gap: 8px;
   width: 100%;
   justify-content: space-between;
-  align-items: center; 
+  align-items: center;
 }
 
 .icon-button {
@@ -314,37 +315,49 @@ li.anime-entry-item {
 
 .icon-button.theme-toggle-button {
   padding: 0;
-  width: 40px;  
-  height: 40px;   
+  width: 38px; 
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem; 
-  flex: 0 0 40px;
+  font-size: 1.1rem; 
+  flex: 0 0 38px; 
   border-radius: 5px;
-  margin:0; 
+  margin:0;
   background-color: var(--button-icon-bg);
   color: var(--text-secondary);
 }
 
 .help-button, .title-toggle-button {
-  margin: 0; 
+  margin: 0;
   flex-grow: 1; 
   flex-basis: 0; 
   padding: 0.5em 0.8em; 
   font-weight: 500;
-  font-size: 0.9rem;
-  height: 40px; 
-  display: flex; 
+  font-size: 0.85rem; 
+  height: 38px; 
+  display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-width: 80px; 
 }
-
 .icon-button.theme-toggle-button:hover {
   background-color: var(--button-icon-hover-bg);
 }
 
+
+.app-disclaimer-footer {
+  font-size: 0.7em; 
+  color: var(--text-subtle);
+  text-align: center;
+  width: 100%;
+  padding: 0 5px;
+  box-sizing: border-box;
+  line-height: 1.3;
+  margin-top: 4px;
+
+}
 
 .theme-toggle-button { background-color: var(--button-icon-bg); color: var(--text-secondary); }
 .theme-toggle-button:hover { background-color: var(--button-icon-hover-bg); }
@@ -357,7 +370,7 @@ li.anime-entry-item {
 .sidebar-app-meta {
   display: flex; justify-content: space-between; align-items: center;
   width: 100%; font-size: 0.8em; color: var(--text-subtle);
-  padding: 4px; box-sizing: border-box; gap: 8px;
+  padding: 0 4px; box-sizing: border-box; gap: 8px;
 }
 .github-link {
   color: var(--text-subtle); text-decoration: none; display: inline-flex;
