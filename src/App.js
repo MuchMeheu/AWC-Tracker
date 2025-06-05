@@ -31,6 +31,8 @@ function App() {
   const [anilistUsername, setAnilistUsername] = useState(() => localStorage.getItem('anilistUsername') || '');
   const [tempUsername, setTempUsername] = useState(anilistUsername);
   const [displayedUserAvatar, setDisplayedUserAvatar] = useState(null);
+  const [displayedUserBanner, setDisplayedUserBanner] = useState(null);
+
 
   const [rawCode, setRawCode] = useState('');
   const [postUrl, setPostUrl] = useState('');
@@ -85,9 +87,10 @@ function App() {
   const fetchPublicUserData = useCallback(async (usernameToFetch) => {
     if (!usernameToFetch) {
       setDisplayedUserAvatar(null);
+      setDisplayedUserBanner(null);
       return;
     }
-    const query = `query ($name: String) { User(name: $name) { avatar { medium } } }`;
+    const query = `query ($name: String) { User(name: $name) { avatar { medium } bannerImage } }`;
     try {
       const response = await fetch('https://graphql.anilist.co', {
         method: 'POST',
@@ -95,16 +98,22 @@ function App() {
         body: JSON.stringify({ query, variables: { name: usernameToFetch } })
       });
       const json = await response.json();
-      if (json.data?.User?.avatar?.medium) {
-        setDisplayedUserAvatar(json.data.User.avatar.medium);
+      if (json.data?.User) {
+        setDisplayedUserAvatar(json.data.User.avatar?.medium || null);
+        setDisplayedUserBanner(json.data.User.bannerImage || null);
+        if (!json.data.User.avatar?.medium && !json.data.User.bannerImage && !json.data.User ) {
+             addToast(`User "${usernameToFetch}" not found on AniList.`, 'warning');
+        }
       } else {
         setDisplayedUserAvatar(null);
-        if (!json.data?.User) addToast(`User "${usernameToFetch}" not found on AniList.`, 'warning');
+        setDisplayedUserBanner(null);
+        addToast(`User "${usernameToFetch}" not found on AniList.`, 'warning');
       }
     } catch (error) {
       console.error("Error fetching public user data:", error);
       setDisplayedUserAvatar(null);
-      addToast(`Could not fetch avatar for ${usernameToFetch}.`, 'error');
+      setDisplayedUserBanner(null);
+      addToast(`Could not fetch data for ${usernameToFetch}.`, 'error');
     }
   }, [addToast]); 
 
@@ -113,9 +122,9 @@ function App() {
       fetchPublicUserData(anilistUsername);
     } else {
       setDisplayedUserAvatar(null);
+      setDisplayedUserBanner(null);
     }
   }, [anilistUsername, fetchPublicUserData]);
-
 
   const fetchUserAnimeList = useCallback(async (usernameToFetch) => {
     if (!usernameToFetch) {
@@ -196,6 +205,7 @@ function App() {
     } else if (!newUsername && anilistUsername) {
       setAnilistUsername('');
       setDisplayedUserAvatar(null);
+      setDisplayedUserBanner(null);
       localStorage.removeItem('anilistUsername');
       addToast('AniList username cleared.', 'info');
     } else if (newUsername && newUsername === anilistUsername) {
@@ -366,7 +376,7 @@ function App() {
         localStorage.removeItem('preferredTitle'); 
         localStorage.removeItem('theme');
         setChallenges([]); 
-        setAnilistUsername(''); setTempUsername(''); setDisplayedUserAvatar(null);
+        setAnilistUsername(''); setTempUsername(''); setDisplayedUserAvatar(null); setDisplayedUserBanner(null);
         setSelectedChallenge(null); setRawCode(''); setPostUrl(''); setAddChallengeErrors([]);
         setPreferredTitle('romaji'); setTheme('dark'); setIsOpen(false); addToast("All app data cleared.", 'info');
       }
@@ -434,9 +444,23 @@ function App() {
           </div>
 
           {anilistUsername && (
-            <div className="current-anilist-user">
-              {displayedUserAvatar && <img src={displayedUserAvatar} alt={anilistUsername} className="current-user-avatar" />}
-              <span>Tracking for: <a href={`https://anilist.co/user/${anilistUsername}/animelist`} target="_blank" rel="noopener noreferrer">{anilistUsername}</a></span>
+            <div 
+              className="current-anilist-user" 
+              style={displayedUserBanner ? { backgroundImage: `url(${displayedUserBanner})` } : {}}
+            >
+              {displayedUserBanner && (
+                <img 
+                  src={displayedUserBanner} 
+                  alt={`${anilistUsername}'s banner`} 
+                  className="current-user-banner-img" 
+                />
+              )}
+              <div className="current-anilist-user-overlay">
+                {displayedUserAvatar && <img src={displayedUserAvatar} alt={anilistUsername} className="current-user-avatar" />}
+                <span className="current-user-text-container">
+                  Tracking for: <a href={`https://anilist.co/user/${anilistUsername}`} target="_blank" rel="noopener noreferrer">{anilistUsername}</a>
+                </span>
+              </div>
             </div>
           )}
 
