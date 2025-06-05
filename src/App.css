@@ -47,6 +47,10 @@
 
   --transition-duration: 200ms;
   --transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --progress-bar-bg: #374151; /* Darker gray for progress bar background */
+  --progress-bar-fill: var(--button-primary-bg); /* Use primary button color for fill */
+  --progress-bar-text-color: var(--text-primary);
 }
 
 .light-theme {
@@ -82,6 +86,10 @@
   --scrollbar-thumb: #9ca3af;
   --scrollbar-track: #e5e7eb;
   --scrollbar-thumb-hover: #6b7280;
+
+  --progress-bar-bg: #d1d5db; 
+  /* --progress-bar-fill: var(--button-primary-bg); /* Can keep same or adjust */
+  --progress-bar-text-color: var(--text-primary);
 }
 
 body {
@@ -467,7 +475,9 @@ li.anime-entry-item {
 .add-challenge-section { margin-bottom: 2rem; }
 
 .back-button { margin-bottom: 1rem; }
+.challenge-detail-view {}
 .challenge-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.challenge-detail-progress { margin-bottom: 1rem; }
 .challenge-post-url { font-size: 0.9em; margin-bottom: 1rem; word-break: break-all; color: var(--text-tertiary); }
 
 .status-warning { color: var(--accent-color-1); font-size: 0.85em; margin-top: 0.25em; }
@@ -483,7 +493,39 @@ li.anime-entry-item {
   align-items: flex-start; transition: background-color 0.3s ease;
 }
 .manage-challenge-details { flex: 1; padding-right: 0.5em; }
-.manage-challenge-progress { font-size: 0.9em; color: var(--text-subtle); display: block; margin: 0.25em 0 0.5em; }
+/* .manage-challenge-progress { font-size: 0.9em; color: var(--text-subtle); display: block; margin: 0.25em 0 0.5em; } */
+
+.progress-bar-container {
+  width: 100%;
+  height: 20px; /* Or your desired height */
+  background-color: var(--progress-bar-bg);
+  border-radius: 4px;
+  margin: 0.5em 0; /* Spacing around the progress bar */
+  position: relative; /* For positioning text inside */
+  overflow: hidden; /* Ensure filled part respects border-radius */
+}
+.progress-bar-filled {
+  height: 100%;
+  background-color: var(--progress-bar-fill);
+  border-radius: 4px; /* Match container, or 4px 0 0 4px for sharper end */
+  transition: width 0.3s ease-in-out;
+}
+.progress-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--progress-bar-text-color);
+  line-height: 20px; /* Match container height */
+  text-shadow: 0 0 2px rgba(0,0,0,0.5); /* Optional shadow for readability */
+}
+
 
 .button-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .button-row button { font-size: 0.85rem; padding: 0.4em 0.8em; }

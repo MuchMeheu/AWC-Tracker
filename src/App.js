@@ -27,6 +27,20 @@ const Toast = ({ message, type = 'success', onDismiss }) => {
   );
 };
 
+const ProgressBar = ({ completed, total }) => {
+  const percentage = total > 0 ? Math.min((completed / total) * 100, 100) : 0; // Cap at 100%
+  return (
+    <div className="progress-bar-container" title={`${completed}/${total} completed on AniList (${Math.round(percentage)}%)`}>
+      <div 
+        className="progress-bar-filled" 
+        style={{ width: `${percentage}%` }}
+      />
+      <span className="progress-bar-text">{completed}/{total}</span>
+    </div>
+  );
+};
+
+
 function App() {
   const [anilistUsername, setAnilistUsername] = useState(() => localStorage.getItem('anilistUsername') || '');
   const [tempUsername, setTempUsername] = useState(anilistUsername);
@@ -36,7 +50,7 @@ function App() {
 
   const [rawCode, setRawCode] = useState('');
   const [postUrl, setPostUrl] = useState('');
-  const APP_VERSION = process.env.REACT_APP_VERSION;
+  const APP_VERSION = process.env.REACT_APP_VERSION; // This would be v0.8.0
   const GITHUB_REPO_URL = "https://github.com/MuchMeheu/AWC-Tracker";
   const MY_ANILIST_PROFILE_URL = "https://anilist.co/user/Meheu/";
 
@@ -387,30 +401,40 @@ function App() {
     setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
-  const renderChallengeDetail = useCallback((challenge) => (
-    <div className="challenge-detail-view">
-      <button className="back-button" onClick={() => setSelectedChallenge(null)}>⬅️ Back</button>
-      <div className="challenge-detail-header">
-        <h2>{challenge.title}</h2>
-        {anilistUsername && <button onClick={() => handleRefreshSingleChallengeStatus(challenge.id)} disabled={isRefreshingChallenge === challenge.id} className="refresh-challenge-btn">{isRefreshingChallenge === challenge.id ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}</button>}
-      </div>
-      {challenge.postUrl && <p className="challenge-post-url">Post URL: <a href={challenge.postUrl} target="_blank" rel="noreferrer">{challenge.postUrl}</a></p>}
-      {challenge.entries.length === 0 ? (<EmptyState message="No anime entries in this challenge." />) : (
-        <ul>{challenge.entries.map((entry) => (
-          <li key={entry.id} className="anime-entry-item">
-            <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer"><img src={entry.image} alt={getDisplayTitle(entry)} className="anime-entry-image"/></a>
-            <div className="anime-entry-details">
-              <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer"><strong>{getDisplayTitle(entry)}</strong></a>
-              <span className="anime-entry-status">AniList: {entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}</span>
-              {entry.statusAniList === 'complete' && entry.statusChallenge === 'incomplete' && (<div className="status-warning">⚠️ Needs post update</div>)}
-              {entry.statusAniList === 'incomplete' && entry.statusChallenge === 'complete' && (<div className="status-info">ℹ️ Marked complete in challenge</div>)}
-              <span className="anime-entry-dates">Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}</span>
+  const renderChallengeDetail = useCallback((challenge) => {
+    const completedOnAniList = challenge.entries.filter(e => e.statusAniList === 'complete').length;
+    const totalEntries = challenge.entries.length;
+
+    return (
+        <div className="challenge-detail-view">
+        <button className="back-button" onClick={() => setSelectedChallenge(null)}>⬅️ Back</button>
+        <div className="challenge-detail-header">
+            <h2>{challenge.title}</h2>
+            {anilistUsername && <button onClick={() => handleRefreshSingleChallengeStatus(challenge.id)} disabled={isRefreshingChallenge === challenge.id} className="refresh-challenge-btn">{isRefreshingChallenge === challenge.id ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}</button>}
+        </div>
+        {totalEntries > 0 && (
+            <div className="challenge-detail-progress">
+                <ProgressBar completed={completedOnAniList} total={totalEntries} />
             </div>
-          </li>))}
-        </ul>
-      )}
-    </div>
-  ), [anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus]);
+        )}
+        {challenge.postUrl && <p className="challenge-post-url">Post URL: <a href={challenge.postUrl} target="_blank" rel="noreferrer">{challenge.postUrl}</a></p>}
+        {challenge.entries.length === 0 ? (<EmptyState message="No anime entries in this challenge." />) : (
+            <ul>{challenge.entries.map((entry) => (
+            <li key={entry.id} className="anime-entry-item">
+                <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer"><img src={entry.image} alt={getDisplayTitle(entry)} className="anime-entry-image"/></a>
+                <div className="anime-entry-details">
+                <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer"><strong>{getDisplayTitle(entry)}</strong></a>
+                <span className="anime-entry-status">AniList: {entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌'} | Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}</span>
+                {entry.statusAniList === 'complete' && entry.statusChallenge === 'incomplete' && (<div className="status-warning">⚠️ Needs post update</div>)}
+                {entry.statusAniList === 'incomplete' && entry.statusChallenge === 'complete' && (<div className="status-info">ℹ️ Marked complete in challenge</div>)}
+                <span className="anime-entry-dates">Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}</span>
+                </div>
+            </li>))}
+            </ul>
+        )}
+        </div>
+    );
+  }, [anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus]);
 
   return (
     <div className="App">
@@ -458,7 +482,7 @@ function App() {
               <div className="current-anilist-user-overlay">
                 {displayedUserAvatar && <img src={displayedUserAvatar} alt={anilistUsername} className="current-user-avatar" />}
                 <span className="current-user-text-container">
-                  Tracking for: <a href={`https://anilist.co/user/${anilistUsername}`} target="_blank" rel="noopener noreferrer">{anilistUsername}</a>
+                  Tracking for: <a href={`https://anilist.co/user/${anilistUsername}/animelist`} target="_blank" rel="noopener noreferrer">{anilistUsername}</a>
                 </span>
               </div>
             </div>
@@ -549,11 +573,13 @@ function App() {
         {challenges.length === 0 ? (<EmptyState message="No challenges to manage." />)
           : (<ul>{challenges.map((ch) => {
             const completedOnAniList = ch.entries.filter(e => e.statusAniList === 'complete').length;
+            const totalEntries = ch.entries.length;
             return (
               <li key={ch.id} className="manage-challenge-item">
                 <div className="manage-challenge-details">
                   <strong>{ch.title}</strong>
-                  <span className="manage-challenge-progress">AniList ✅: {completedOnAniList}/{ch.entries.length}</span>
+                  {/* <span className="manage-challenge-progress">AniList ✅: {completedOnAniList}/{totalEntries}</span> */}
+                  <ProgressBar completed={completedOnAniList} total={totalEntries} />
                   <div className="button-row">
                     <button onClick={() => handleCopyPostUrl(ch)} disabled={!ch.postUrl}>🔗 Copy URL</button>
                     <button onClick={() => handleCopyChallengeCode(ch)}>📋 Copy Code</button>
@@ -631,13 +657,14 @@ function App() {
                             <li>Click on a saved challenge in the sidebar to view its details.</li>
                             <li>In the right "Manage" panel, for each challenge:
                                 <ul>
+                                    <li>View its completion progress on AniList.</li>
                                     <li>Copy the post URL (if you added one).</li>
                                     <li>Copy an updated challenge code (uses your preferred title display) to paste back into forums. This generated code uses your *current AniList statuses* (for the set username) to suggest the symbols (✔️, ⭐, ❌).</li>
                                     <li>Link to the AWC Editor (if a post URL is provided).</li>
                                     <li>Delete a challenge (you will be asked to confirm).</li>
                                 </ul>
                             </li>
-                            <li>When viewing a challenge's details, you can click "Refresh AniList Status" to update its entries based on your current AniList activity (for the set username).</li>
+                            <li>When viewing a challenge's details, you can click "Refresh AniList Status" to update its entries based on your current AniList activity (for the set username). You can also see its progress bar here.</li>
                         </ul>
                     </li>
                      <li><strong>⚠️ Discrepancies:</strong> If an anime is marked "complete" (✅) on AniList but still shows as "incomplete" (❌) in your challenge (e.g., your post used `[O]` or `[❌]`), the tracker will highlight this, reminding you to update your forum post with a 'completed' symbol like `[✔️]` or `[X]`.</li>
