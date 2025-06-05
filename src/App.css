@@ -73,26 +73,19 @@
   --text-link-hover: #1d4ed8;
   --text-strong: #1f2937;
   --text-placeholder: #9ca3af;
-  /* --text-on-accent: white; /* Usually fine */
 
   --border-primary: #d1d5db;
   --border-secondary: #e5e7eb;
-  /* --border-focus: #3b82f6; */
+
 
   --button-secondary-bg: var(--bg-interactive);
   --button-secondary-hover-bg: var(--bg-interactive-hover);
   --button-disabled-bg: #9ca3af;
   --button-icon-bg: var(--bg-interactive);
   --button-icon-hover-bg: var(--bg-interactive-hover);
-  /* --button-danger-bg: #ef4444; */
-  /* --button-danger-hover-bg: #dc2626; */
   --button-delete-icon-bg: #fee2e2;
-
   --accent-warning: #f59e0b;
   --accent-info: #3b82f6;
-  /* --accent-success: #10b981; */
-  /* --accent-success-hover: #059669; */
-  
   --toast-warning-text: #ffffff;
 
   --scrollbar-thumb: #9ca3af;
@@ -156,21 +149,50 @@ button {
   white-space: nowrap;
   line-height: 1.5; 
   text-align: center;
-  box-sizing: border-box;
+  box-sizing: border-box; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  vertical-align: middle; 
 }
 button:hover { background-color: var(--button-primary-hover-bg); }
 button:active { transform: scale(0.98); }
 button:disabled { background-color: var(--button-disabled-bg); color: var(--text-subtle); cursor: not-allowed; transform: none; opacity: 0.7; }
 
-.button-secondary {
+.button-secondary,
+label.import-button { 
   background-color: var(--button-secondary-bg);
   color: var(--text-secondary);
   border: 1px solid var(--border-primary);
+  padding: 0.6em 1em; 
+  font-size: 0.9rem;  
+  font-weight: 500; 
+  border-radius: 5px; 
+  display: inline-flex; 
+  align-items: center;
+  justify-content: center; 
+  gap: 6px;
+  cursor: pointer; 
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  margin: 0.25em 0.5em 0.25em 0;
+  line-height: 1.5; 
+  box-sizing: border-box; 
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; 
+  text-align: center; 
+  vertical-align: middle; 
+  min-height: 38px;
 }
-.button-secondary:hover {
+.button-secondary:hover,
+label.import-button:hover {
   background-color: var(--button-secondary-hover-bg);
   color: var(--text-primary);
   border-color: var(--border-focus);
+}
+.button-secondary:focus-visible,
+label.import-button:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 
@@ -500,16 +522,14 @@ li.anime-entry-item {
   margin-bottom: 0;
 }
 .customize-legend-main-btn {
-  /* Uses .button-secondary styles primarily */
   font-weight: 500;
   font-size: 0.85rem;
   padding: 0.4em 0.8em;
-  margin: 0; /* Remove default button margins */
+  margin: 0; 
 }
 
 
 .back-button { margin-bottom: 1rem; }
-.challenge-detail-view {}
 .challenge-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .challenge-detail-progress { margin-bottom: 1rem; }
 .challenge-post-url { font-size: 0.9em; margin-bottom: 1rem; word-break: break-all; color: var(--text-tertiary); }
@@ -675,39 +695,42 @@ li.anime-entry-item {
   border-top: none; 
   margin-bottom: 0.75rem; 
 }
+
 .dialog-actions button,
-.dialog-actions label.button-secondary {
+.dialog-actions label.button-like-secondary {
   padding: 0.6em 1em; 
   font-size: 0.9rem;
   font-weight: 500;
-  margin: 0;
-}
-.dialog-actions > div { 
-  display: flex;
-  gap: 8px;
-}
-.dialog-actions > button:first-child:not(:only-child),
-.dialog-actions > label.button-secondary:first-child:not(:only-child) {
-  margin-right: auto;
-}
-
-
-.import-button, .export-button { 
-  display: inline-flex; 
+  margin: 0; 
+  border-radius: 5px; 
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
-  gap: 6px; 
+  justify-content: center;
+  line-height: 1.4;
+  text-align: center;
+  vertical-align: middle;
 }
-label.import-button {
+
+.dialog-actions label.button-like-secondary {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent; 
 }
 
-.customize-legend-btn {
-  font-weight: 500; 
+
+.dialog-actions > div { 
+  display: flex;
+  gap: 8px; 
 }
+
+
+.dialog-actions > button:first-child:not(:only-child),
+.dialog-actions > label.button-like-secondary:first-child:not(:only-child) {
+  margin-right: auto;
+}
+
 .dialog-clear-all-btn { background-color: var(--button-danger-bg); color: white; }
 .dialog-clear-all-btn:hover { background-color: var(--button-danger-hover-bg); }
-.dialog-close-btn { font-weight: 500; }
 
 
 .legend-modal-panel .dialog-description {
@@ -750,19 +773,34 @@ label.import-button {
   flex-shrink: 0;
 }
 .remove-symbol-btn {
-  background-color: var(--accent-color-5);
-  color: white;
+  background-color: var(--button-delete-icon-bg); 
+  color: var(--text-on-accent, white); 
+  border: none; 
   width: 30px; 
   height: 30px;
-  font-size: 1.1rem;
+  padding: 0; 
+  font-size: 1.1rem; 
   line-height: 1;
+  border-radius: 5px; 
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 0; 
+  transition: background-color 0.2s ease;
 }
 .remove-symbol-btn:hover {
-  background-color: var(--accent-color-4);
+  background-color: var(--button-danger-bg); 
 }
 .add-symbol-btn {
   align-self: flex-start; 
+  padding: 0.3em 0.6em;
+  font-size: 0.9em;     
+  margin-top: 0.25em; 
 }
+
+
 
 
 .challenge-add-errors {
