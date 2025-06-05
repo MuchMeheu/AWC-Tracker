@@ -6,6 +6,12 @@ import { Description, Dialog, DialogPanel, DialogTitle, Transition } from '@head
 
 const ANILIST_API_DELAY_MS = parseInt(process.env.REACT_APP_ANILIST_API_DELAY_MS, 10) || 4000;
 
+const DEFAULT_LEGEND = {
+  complete: ['✔️', 'X'],
+  ongoing: ['⭐'],
+  incomplete: ['❌', 'O'],
+};
+
 const EmptyState = ({ message, subMessage }) => (
   <div className="empty-state-container">
     <p className="empty-state-message">{message}</p>
@@ -28,7 +34,7 @@ const Toast = ({ message, type = 'success', onDismiss }) => {
 };
 
 const ProgressBar = ({ completed, total }) => {
-  const percentage = total > 0 ? Math.min((completed / total) * 100, 100) : 0; // Cap at 100%
+  const percentage = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
   return (
     <div className="progress-bar-container" title={`${completed}/${total} completed on AniList (${Math.round(percentage)}%)`}>
       <div 
@@ -47,19 +53,39 @@ function App() {
   const [displayedUserAvatar, setDisplayedUserAvatar] = useState(null);
   const [displayedUserBanner, setDisplayedUserBanner] = useState(null);
 
-
   const [rawCode, setRawCode] = useState('');
   const [postUrl, setPostUrl] = useState('');
-  const APP_VERSION = process.env.REACT_APP_VERSION; // This would be v0.8.0
+  const APP_VERSION = process.env.REACT_APP_VERSION; // e.g., v0.9.0
   const GITHUB_REPO_URL = "https://github.com/MuchMeheu/AWC-Tracker";
   const MY_ANILIST_PROFILE_URL = "https://anilist.co/user/Meheu/";
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [userLegend, setUserLegend] = useState(() => {
+    const savedLegend = localStorage.getItem('userLegend');
+    try {
+      const parsedLegend = savedLegend ? JSON.parse(savedLegend) : DEFAULT_LEGEND;
+      return {
+        complete: parsedLegend.complete || [...DEFAULT_LEGEND.complete],
+        ongoing: parsedLegend.ongoing || [...DEFAULT_LEGEND.ongoing],
+        incomplete: parsedLegend.incomplete || [...DEFAULT_LEGEND.incomplete],
+      };
+    } catch (e) {
+      console.error("Error parsing userLegend from localStorage", e);
+      return DEFAULT_LEGEND;
+    }
+  });
+  const [tempLegend, setTempLegend] = useState(JSON.parse(JSON.stringify(userLegend)));
+
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
     document.body.className = theme + '-theme';
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('userLegend', JSON.stringify(userLegend));
+    setTempLegend(JSON.parse(JSON.stringify(userLegend))); 
+  }, [userLegend]);
 
   const [challenges, setChallenges] = useState(() => {
     const saved = localStorage.getItem('awcChallenges');
@@ -75,15 +101,20 @@ function App() {
   });
 
   const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isLegendModalOpen, setIsLegendModalOpen] = useState(false);
   const [isAddingChallenge, setIsAddingChallenge] = useState(false);
   const [addChallengeErrors, setAddChallengeErrors] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [isRefreshingChallenge, setIsRefreshingChallenge] = useState(null);
 
-
   const [preferredTitle, setPreferredTitle] = useState(() => localStorage.getItem('preferredTitle') || 'romaji');
+
+  // State for Rightbar filtering and sorting
+  const [rightbarFilter, setRightbarFilter] = useState('all'); // 'all', 'ongoing', 'completed', 'discrepancies'
+  const [rightbarSort, setRightbarSort] = useState('date-desc'); // 'title-asc', 'title-desc', 'progress-desc', 'progress-asc', 'date-desc', 'date-asc'
+
 
   useEffect(() => {
     localStorage.setItem('preferredTitle', preferredTitle);
@@ -270,16 +301,35 @@ function App() {
       const lines = rawCode.split('\n').map(line => line.trim());
       const headerLine = lines.find(line => line.startsWith('#'));
       const autoTitle = headerLine ? headerLine.replace(/[#_]/g, '').trim() : `Challenge ${Date.now()}`;
+      
+      const allUserSymbols = [
+        ...(userLegend.complete || []),
+        ...(userLegend.ongoing || []),
+        ...(userLegend.incomplete || []),
+      ].map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+      const statusRegex = allUserSymbols.length > 0 ? new RegExp(`\\[(${allUserSymbols.join('|')})\\]`) : null;
+
       const entries = [];
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]; const statusMatch = line.match(/\[(✔️|❌|X|O|⭐)\]/);
-        if (statusMatch) {
-          const statusSymbol = statusMatch[1]; const statusChallenge = (statusSymbol === '✔️' || statusSymbol === 'X') ? 'complete' : (statusSymbol === '⭐') ? 'ongoing' : 'incomplete';
-          const titleMatch = line.match(/__(.+?)__/); const titleFromPost = titleMatch ? titleMatch[1] : 'Unknown';
-          const urlLine = lines[i + 1] || ''; const urlMatch = urlLine.match(/anime\/(\d+)/); const animeId = urlMatch ? urlMatch[1] : null;
-          const datesLine = lines[i + 2] || ''; const startMatch = datesLine.match(/Start:\s*([\d-]+)/); const endMatch = datesLine.match(/Finish:\s*([\d-]+)/);
-          if (animeId) entries.push({ animeId, title: titleFromPost, statusChallenge, startDate: startMatch?.[1], endDate: endMatch?.[1] });
+      if (statusRegex) {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i]; 
+          const statusMatch = line.match(statusRegex);
+
+          if (statusMatch) {
+            const statusSymbol = statusMatch[1]; 
+            let statusChallenge = 'incomplete'; 
+            if ((userLegend.complete || []).includes(statusSymbol)) statusChallenge = 'complete';
+            else if ((userLegend.ongoing || []).includes(statusSymbol)) statusChallenge = 'ongoing';
+            
+            const titleMatch = line.match(/__(.+?)__/); const titleFromPost = titleMatch ? titleMatch[1] : 'Unknown';
+            const urlLine = lines[i + 1] || ''; const urlMatch = urlLine.match(/anime\/(\d+)/); const animeId = urlMatch ? urlMatch[1] : null;
+            const datesLine = lines[i + 2] || ''; const startMatch = datesLine.match(/Start:\s*([\d-]+)/); const endMatch = datesLine.match(/Finish:\s*([\d-]+)/);
+            if (animeId) entries.push({ animeId, title: titleFromPost, statusChallenge, startDate: startMatch?.[1], endDate: endMatch?.[1] });
+          }
         }
+      } else {
+        localErrors.push("No legend symbols defined for parsing. Please set them via 'Customize Legend'.");
       }
       
       const userList = await fetchUserAnimeList(anilistUsername);
@@ -301,11 +351,16 @@ function App() {
       }
       setAddChallengeErrors(localErrors);
       const filtered = enriched.filter(Boolean);
-      if (filtered.length === 0 && entries.length > 0) {
+      if (filtered.length === 0 && entries.length > 0 && localErrors.filter(e => !e.startsWith("Could not fetch AniList data")).length === entries.length) {
         if (localErrors.length === 0) setAddChallengeErrors(prev => [...prev, "No valid anime entries processed."]);
         addToast("No valid anime entries could be processed.", 'warning');
         setIsAddingChallenge(false); return;
       }
+      if (filtered.length === 0 && entries.length === 0 && statusRegex) {
+         addToast("No challenge entries found in the provided code based on your legend.", 'warning');
+         setIsAddingChallenge(false); return;
+      }
+
       const newChallenge = { id: Date.now(), title: autoTitle, postUrl, entries: filtered };
       const updatedChallengesData = [...challenges, newChallenge];
       setChallenges(updatedChallengesData); localStorage.setItem('awcChallenges', JSON.stringify(updatedChallengesData));
@@ -315,7 +370,7 @@ function App() {
       setAddChallengeErrors(prev => [...prev, `Unexpected error: ${error.message}`]);
       addToast("Failed to add challenge.", 'error');
     } finally { setIsAddingChallenge(false); }
-  }, [rawCode, anilistUsername, challenges, postUrl, fetchUserAnimeList, fetchAnime, addToast]);
+  }, [rawCode, anilistUsername, challenges, postUrl, userLegend, fetchUserAnimeList, fetchAnime, addToast]);
 
   const deleteChallenge = (id) => {
     const challengeToDelete = challenges.find(ch => ch.id === id);
@@ -328,13 +383,23 @@ function App() {
   };
 
   const generateChallengeCode = useCallback((challenge) => {
-    const header = `#__${challenge.title}__\n\nChallenge Start Date: YYYY-MM-DD\nChallenge Finish Date: YYYY-MM-DD\nLegend: [✔️] = Completed [❌] = Not Completed [⭐] = Ongoing\n\n<hr>\n`;
+    const legendComplete = (userLegend.complete && userLegend.complete[0]) || '✔️';
+    const legendOngoing = (userLegend.ongoing && userLegend.ongoing[0]) || '⭐';
+    const legendIncomplete = (userLegend.incomplete && userLegend.incomplete[0]) || '❌';
+
+    const header = `#__${challenge.title}__\n\nChallenge Start Date: YYYY-MM-DD\nChallenge Finish Date: YYYY-MM-DD\nLegend: [${legendComplete}] = Completed [${legendIncomplete}] = Not Completed [${legendOngoing}] = Ongoing\n\n<hr>\n`;
     const blocks = challenge.entries.map((entry, i) => {
-      let symbol = entry.statusAniList === 'complete' ? '✔️' : entry.statusAniList === 'ongoing' ? '⭐' : (entry.statusChallenge === 'complete' ? '✔️' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌');
+      let symbol = legendIncomplete; 
+      if (entry.statusAniList === 'complete') symbol = legendComplete;
+      else if (entry.statusAniList === 'ongoing') symbol = legendOngoing;
+      else { 
+        if (entry.statusChallenge === 'complete') symbol = legendComplete;
+        else if (entry.statusChallenge === 'ongoing') symbol = legendOngoing;
+      }
       return `${String(i + 1).padStart(2, '0')}) [${symbol}] __${getDisplayTitle(entry)}__\nhttps://anilist.co/anime/${entry.animeId}/\nStart: ${entry.startDate || 'YYYY-MM-DD'} Finish: ${entry.endDate || 'YYYY-MM-DD'}`;
     });
     return header + blocks.join('\n\n');
-  }, [getDisplayTitle]);
+  }, [getDisplayTitle, userLegend]);
 
   const handleCopyChallengeCode = useCallback((challenge) => {
     navigator.clipboard.writeText(generateChallengeCode(challenge));
@@ -389,10 +454,12 @@ function App() {
         localStorage.removeItem('anilistUsername');
         localStorage.removeItem('preferredTitle'); 
         localStorage.removeItem('theme');
+        localStorage.removeItem('userLegend');
         setChallenges([]); 
         setAnilistUsername(''); setTempUsername(''); setDisplayedUserAvatar(null); setDisplayedUserBanner(null);
         setSelectedChallenge(null); setRawCode(''); setPostUrl(''); setAddChallengeErrors([]);
-        setPreferredTitle('romaji'); setTheme('dark'); setIsOpen(false); addToast("All app data cleared.", 'info');
+        setPreferredTitle('romaji'); setTheme('dark'); setUserLegend(DEFAULT_LEGEND);
+        setIsHelpModalOpen(false); setIsLegendModalOpen(false); addToast("All app data cleared.", 'info');
       }
     }
   };
@@ -400,6 +467,152 @@ function App() {
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
+
+  const handleLegendInputChange = (statusType, index, value) => {
+    const newLegend = JSON.parse(JSON.stringify(tempLegend));
+    if (!newLegend[statusType]) newLegend[statusType] = [];
+    newLegend[statusType][index] = value; 
+    setTempLegend(newLegend);
+  };
+
+  const handleAddLegendSymbol = (statusType) => {
+    const newLegend = JSON.parse(JSON.stringify(tempLegend));
+    if (!newLegend[statusType]) newLegend[statusType] = [];
+    newLegend[statusType].push('');
+    setTempLegend(newLegend);
+  };
+
+  const handleRemoveLegendSymbol = (statusType, index) => {
+    const newLegend = JSON.parse(JSON.stringify(tempLegend));
+    if (newLegend[statusType] && newLegend[statusType].length > 0) {
+        newLegend[statusType].splice(index, 1);
+    }
+    setTempLegend(newLegend);
+  };
+
+  const saveUserLegend = () => {
+    const cleanedLegendInput = {
+        complete: (tempLegend.complete || []).map(s => s.trim()).filter(s => s !== ''),
+        ongoing: (tempLegend.ongoing || []).map(s => s.trim()).filter(s => s !== ''),
+        incomplete: (tempLegend.incomplete || []).map(s => s.trim()).filter(s => s !== ''),
+    };
+
+    const allSymbols = [
+        ...cleanedLegendInput.complete, 
+        ...cleanedLegendInput.ongoing, 
+        ...cleanedLegendInput.incomplete
+    ];
+    const uniqueSymbols = new Set(allSymbols);
+
+    if (allSymbols.length !== uniqueSymbols.size) {
+        const counts = {};
+        const duplicates = [];
+        allSymbols.forEach(symbol => {
+            counts[symbol] = (counts[symbol] || 0) + 1;
+            if (counts[symbol] > 1 && !duplicates.includes(symbol)) {
+                let categoriesInvolved = 0;
+                if (cleanedLegendInput.complete.includes(symbol)) categoriesInvolved++;
+                if (cleanedLegendInput.ongoing.includes(symbol)) categoriesInvolved++;
+                if (cleanedLegendInput.incomplete.includes(symbol)) categoriesInvolved++;
+                if (categoriesInvolved > 1) {
+                    duplicates.push(symbol);
+                }
+            }
+        });
+        
+        if (duplicates.length > 0) {
+            addToast(`Error: Symbol(s) "${duplicates.join('", "')}" cannot be used for multiple status types. Please use unique symbols for each status category.`, 'error');
+            return;
+        }
+    }
+    
+    if (cleanedLegendInput.complete.length === 0 && 
+        cleanedLegendInput.ongoing.length === 0 && 
+        cleanedLegendInput.incomplete.length === 0) {
+        addToast("Cannot save an empty legend. Resetting to defaults.", 'warning');
+        setUserLegend(DEFAULT_LEGEND);
+        setIsLegendModalOpen(false);
+        return;
+    }
+
+    const finalLegendToSave = {
+        complete: cleanedLegendInput.complete.length > 0 ? cleanedLegendInput.complete : [...DEFAULT_LEGEND.complete],
+        ongoing: cleanedLegendInput.ongoing.length > 0 ? cleanedLegendInput.ongoing : [...DEFAULT_LEGEND.ongoing],
+        incomplete: cleanedLegendInput.incomplete.length > 0 ? cleanedLegendInput.incomplete : [...DEFAULT_LEGEND.incomplete],
+    };
+    
+    setUserLegend(finalLegendToSave);
+    addToast("Custom legend saved!", 'success');
+    setIsLegendModalOpen(false);
+  };
+
+  const handleExportData = () => {
+    const dataToExport = {
+      anilistUsername,
+      theme,
+      preferredTitle,
+      userLegend,
+      challenges,
+      appVersion: APP_VERSION 
+    };
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
+    const link = document.createElement("a");
+    link.href = jsonString;
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+    link.download = `awc-tracker-backup-${timestamp}.json`;
+    link.click();
+    addToast("Data exported successfully!", "success");
+  };
+
+  const handleImportData = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (typeof importedData.anilistUsername === 'string' &&
+              Array.isArray(importedData.challenges) &&
+              typeof importedData.theme === 'string' &&
+              typeof importedData.preferredTitle === 'string' &&
+              typeof importedData.userLegend === 'object' &&
+              Array.isArray(importedData.userLegend.complete) &&
+              Array.isArray(importedData.userLegend.ongoing) &&
+              Array.isArray(importedData.userLegend.incomplete)
+          ) {
+            if (window.confirm("Importing data will overwrite your current settings and challenges. Are you sure?")) {
+                setAnilistUsername(importedData.anilistUsername || '');
+                setTheme(importedData.theme || 'dark');
+                setPreferredTitle(importedData.preferredTitle || 'romaji');
+                setUserLegend(importedData.userLegend || DEFAULT_LEGEND);
+                setChallenges(importedData.challenges || []);
+                
+                localStorage.setItem('anilistUsername', importedData.anilistUsername || '');
+                localStorage.setItem('theme', importedData.theme || 'dark');
+                localStorage.setItem('preferredTitle', importedData.preferredTitle || 'romaji');
+                localStorage.setItem('userLegend', JSON.stringify(importedData.userLegend || DEFAULT_LEGEND));
+                localStorage.setItem('awcChallenges', JSON.stringify(importedData.challenges || []));
+                
+                addToast("Data imported successfully! Refreshing challenges...", "success");
+                if (importedData.anilistUsername && (importedData.challenges || []).length > 0) {
+                    handleRefreshAllChallenges(importedData.anilistUsername);
+                }
+                setIsHelpModalOpen(false); 
+            }
+          } else {
+            addToast("Invalid or corrupted import file.", "error");
+          }
+        } catch (err) {
+          console.error("Error importing data:", err);
+          addToast("Failed to import data. File might be corrupted.", "error");
+        } finally {
+            event.target.value = null; 
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
 
   const renderChallengeDetail = useCallback((challenge) => {
     const completedOnAniList = challenge.entries.filter(e => e.statusAniList === 'complete').length;
@@ -435,6 +648,58 @@ function App() {
         </div>
     );
   }, [anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus]);
+
+  const filteredAndSortedChallenges = useMemo(() => {
+    let processedChallenges = [...challenges];
+
+    // Filtering
+    if (rightbarFilter !== 'all') {
+      processedChallenges = processedChallenges.filter(ch => {
+        const completedCount = ch.entries.filter(e => e.statusAniList === 'complete').length;
+        const totalCount = ch.entries.length;
+        if (totalCount === 0 && rightbarFilter !== 'all') return false; // Exclude empty challenges from specific filters
+
+        switch (rightbarFilter) {
+          case 'ongoing':
+            return totalCount > 0 && completedCount < totalCount;
+          case 'completed':
+            return totalCount > 0 && completedCount === totalCount;
+          case 'discrepancies':
+            return ch.entries.some(e => e.statusAniList === 'complete' && e.statusChallenge !== 'complete');
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Sorting
+    processedChallenges.sort((a, b) => {
+      switch (rightbarSort) {
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        case 'progress-desc': {
+          const progressA = a.entries.length > 0 ? (a.entries.filter(e => e.statusAniList === 'complete').length / a.entries.length) : -1;
+          const progressB = b.entries.length > 0 ? (b.entries.filter(e => e.statusAniList === 'complete').length / b.entries.length) : -1;
+          return progressB - progressA;
+        }
+        case 'progress-asc': {
+          const progressA = a.entries.length > 0 ? (a.entries.filter(e => e.statusAniList === 'complete').length / a.entries.length) : Infinity;
+          const progressB = b.entries.length > 0 ? (b.entries.filter(e => e.statusAniList === 'complete').length / b.entries.length) : Infinity;
+          return progressA - progressB;
+        }
+        case 'date-asc':
+          return a.id - b.id;
+        case 'date-desc':
+        default:
+          return b.id - a.id;
+      }
+    });
+
+    return processedChallenges;
+  }, [challenges, rightbarFilter, rightbarSort]);
+
 
   return (
     <div className="App">
@@ -504,7 +769,7 @@ function App() {
             </button>
             <button 
               className="help-button" 
-              onClick={() => setIsOpen(true)} 
+              onClick={() => setIsHelpModalOpen(true)} 
               title="Help"
             >
               ❓ Help
@@ -537,7 +802,16 @@ function App() {
         {!selectedChallenge ? (
           <>
             <div className="add-challenge-section">
-              <h2>➕ Add Challenge</h2>
+              <div className="section-header">
+                <h2>➕ Add Challenge</h2>
+                <button 
+                  onClick={() => { setIsLegendModalOpen(true); setTempLegend(JSON.parse(JSON.stringify(userLegend)));}} 
+                  className="button-secondary customize-legend-main-btn"
+                  title="Customize how challenge statuses are parsed"
+                >
+                  ⚙️ Customize Legend
+                </button>
+              </div>
               <textarea value={rawCode} onChange={(e) => setRawCode(e.target.value)} rows={8} placeholder="Paste challenge code here..." />
               <input type="text" placeholder="Optional: Forum post URL" value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
               <button onClick={handleAddChallenge} disabled={isAddingChallenge || !anilistUsername}>{isAddingChallenge ? '⏳ Adding...' : '➕ Save Challenge'}</button>
@@ -570,15 +844,37 @@ function App() {
 
       <div className="rightbar">
         <h2>📋 Manage</h2>
-        {challenges.length === 0 ? (<EmptyState message="No challenges to manage." />)
-          : (<ul>{challenges.map((ch) => {
+        <div className="manage-controls">
+          <div className="filter-sort-group">
+            <label htmlFor="filter-challenges">Filter:</label>
+            <select id="filter-challenges" value={rightbarFilter} onChange={(e) => setRightbarFilter(e.target.value)} className="control-select">
+              <option value="all">All</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+              <option value="discrepancies">Has Discrepancies</option>
+            </select>
+          </div>
+          <div className="filter-sort-group">
+            <label htmlFor="sort-challenges">Sort by:</label>
+            <select id="sort-challenges" value={rightbarSort} onChange={(e) => setRightbarSort(e.target.value)} className="control-select">
+              <option value="date-desc">Date Added (Newest)</option>
+              <option value="date-asc">Date Added (Oldest)</option>
+              <option value="title-asc">Title (A-Z)</option>
+              <option value="title-desc">Title (Z-A)</option>
+              <option value="progress-desc">Progress (Most)</option>
+              <option value="progress-asc">Progress (Least)</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredAndSortedChallenges.length === 0 ? (<EmptyState message="No challenges match your filters." />)
+          : (<ul>{filteredAndSortedChallenges.map((ch) => {
             const completedOnAniList = ch.entries.filter(e => e.statusAniList === 'complete').length;
             const totalEntries = ch.entries.length;
             return (
               <li key={ch.id} className="manage-challenge-item">
                 <div className="manage-challenge-details">
                   <strong>{ch.title}</strong>
-                  {/* <span className="manage-challenge-progress">AniList ✅: {completedOnAniList}/{totalEntries}</span> */}
                   <ProgressBar completed={completedOnAniList} total={totalEntries} />
                   <div className="button-row">
                     <button onClick={() => handleCopyPostUrl(ch)} disabled={!ch.postUrl}>🔗 Copy URL</button>
@@ -591,8 +887,8 @@ function App() {
           })}</ul>)}
       </div>
 
-      <Transition appear show={isOpen} as={Fragment}>
-        <Dialog as="div" className="dialog-root" onClose={() => setIsOpen(false)}>
+      <Transition appear show={isHelpModalOpen} as={Fragment}>
+        <Dialog as="div" className="dialog-root" onClose={() => setIsHelpModalOpen(false)}>
           <Transition.Child
             as={Fragment}
             enter="dialog-backdrop-enter-active"
@@ -630,55 +926,114 @@ function App() {
                     </li>
                     <li><strong>❗ Status Parsing from Your Post (Important!):</strong>
                         <ul>
-                            <li>The tracker parses status symbols from your challenge post within square brackets. Supported symbols and their interpretation:
+                            <li>The tracker parses status symbols from your challenge post within square brackets. You can define your custom symbols via the "Customize Legend" button (next to "Add Challenge" heading). Default symbols are:
                                 <ul>
-                                    <li><code>[✔️]</code> or <code>[X]</code> (uppercase X): Parsed as 'Completed'</li>
-                                    <li><code>[⭐]</code>: Parsed as 'Ongoing'</li>
-                                    <li><code>[❌]</code> or <code>[O]</code> (uppercase O): Parsed as 'Incomplete' / 'Not Completed'</li>
+                                    <li>Completed: <code>[✔️]</code> or <code>[X]</code></li>
+                                    <li>Ongoing: <code>[⭐]</code></li>
+                                    <li>Incomplete: <code>[❌]</code> or <code>[O]</code></li>
                                 </ul>
                             </li>
-                            <li>For best visual consistency and clarity in your posts, using the emoji symbols (✔️, ❌, ⭐) is recommended, but the letter alternatives (X, O) will also be correctly processed by this tracker as described above.</li>
-                            <li><strong>Unicode Note:</strong> Be mindful that some checkmark symbols (like ✔️ or ❌) can have multiple Unicode representations that look identical but are technically different characters. If parsing seems incorrect for a checkmark, ensure you're using the standard emoji version (U+2714 U+FE0F for ✔️). The parser specifically looks for the common variants. So I recommend copy pasting the emoji's seen above into your challenge code and into AWC Editor for simplicity.</li>
+                            <li><strong>Unicode Note:</strong> Be mindful that some checkmark symbols (like ✔️ or ❌) can have multiple Unicode representations that look identical but are technically different characters. If parsing seems incorrect for a checkmark, ensure you're using the standard emoji version (U+2714 U+FE0F for ✔️). The parser specifically looks for the common variants. So I recommend copy pasting the emoji's seen above into your challenge code and into AWC Editor for simplicity. Or Customizing the legend to your</li>
                         </ul>
                     </li>
                     <li><strong>⏳ Rate Limits & Large Challenges:</strong>
                         <ul>
                             <li>When adding a challenge, the app fetches data for each anime from AniList one by one.</li>
-                            <li>To respect AniList's API rate limits (especially when they are in a degraded state), there's a delay between each fetch (currently set to {ANILIST_API_DELAY_MS / 1000} seconds).</li>
-                            <li>This means **adding very large challenges can take some time.** Please be patient; the "Adding..." button indicates it's working.</li>
-                            <li>If AniList is under heavy load or if you add many challenges quickly, you might still encounter fetching issues. Trying again later or ensuring a stable internet connection can help.</li>
+                            <li>To respect AniList's API rate limits, there's a delay between each fetch (currently {ANILIST_API_DELAY_MS / 1000} seconds).</li>
+                            <li>This means **adding very large challenges can take some time.**</li>
                         </ul>
                     </li>
-                    <li><strong><span role="img" aria-label="books">📚</span> Title Preference:</strong> Use the "Romaji/English" button (bottom-left) to switch title languages. Your preference is saved.</li>
+                    <li><strong><span role="img" aria-label="books">📚</span> Title Preference:</strong> Use the "Romaji/English" button (bottom-left) to switch title languages.</li>
                     <li><strong>☀️/🌙 Theme Toggle:</strong> Switch between light and dark themes using the sun/moon button in the sidebar.</li>
-                    <li><strong><span role="img" aria-label="globe">🌐</span> Global Tracker:</strong> View a combined list of all anime from your saved challenges. It shows the status on AniList versus the effective status across your challenges.</li>
-                    <li><strong>📋 Manage Challenges:</strong>
-                        <ul>
-                            <li>Click on a saved challenge in the sidebar to view its details.</li>
-                            <li>In the right "Manage" panel, for each challenge:
-                                <ul>
-                                    <li>View its completion progress on AniList.</li>
-                                    <li>Copy the post URL (if you added one).</li>
-                                    <li>Copy an updated challenge code (uses your preferred title display) to paste back into forums. This generated code uses your *current AniList statuses* (for the set username) to suggest the symbols (✔️, ⭐, ❌).</li>
-                                    <li>Link to the AWC Editor (if a post URL is provided).</li>
-                                    <li>Delete a challenge (you will be asked to confirm).</li>
-                                </ul>
-                            </li>
-                            <li>When viewing a challenge's details, you can click "Refresh AniList Status" to update its entries based on your current AniList activity (for the set username). You can also see its progress bar here.</li>
-                        </ul>
-                    </li>
-                     <li><strong>⚠️ Discrepancies:</strong> If an anime is marked "complete" (✅) on AniList but still shows as "incomplete" (❌) in your challenge (e.g., your post used `[O]` or `[❌]`), the tracker will highlight this, reminding you to update your forum post with a 'completed' symbol like `[✔️]` or `[X]`.</li>
+                    <li><strong><span role="img" aria-label="globe">🌐</span> Global Tracker:</strong> Combined view of all anime from your saved challenges.</li>
+                    <li><strong>📋 Manage Challenges:</strong> View progress, copy URL/Code, link to AWC Editor, Delete. Refresh statuses in detail view. Filter and sort options are available above the list.</li>
+                     <li><strong>⚠️ Discrepancies:</strong> Highlights if AniList status differs from your post's status.</li>
+                     <li><strong>💾 Data Import/Export:</strong> Use the buttons below to backup your current data (challenges and settings) or import data from a previous backup.</li>
                   </ul>
                 </Description>
+                <div className="dialog-actions data-actions"> 
+                  <label htmlFor="import-file-input" className="button-secondary import-button">
+                    📥 Import Data
+                  </label>
+                  <input id="import-file-input" type="file" accept=".json" onChange={handleImportData} style={{ display: 'none' }} />
+                  <button onClick={handleExportData} className="button-secondary export-button">📤 Export Data</button>
+                </div>
                 <div className="dialog-actions">
                   <button className="dialog-clear-all-btn" onClick={handleClearAllData} title="Deletes all data & logs out.">⚠️ Clear All App Data</button>
-                  <button className="dialog-close-btn" onClick={() => setIsOpen(false)}>Close</button>
+                  <button className="dialog-close-btn" onClick={() => setIsHelpModalOpen(false)}>Close</button>
                 </div>
               </DialogPanel>
             </Transition.Child>
           </div>
         </Dialog>
       </Transition>
+
+      <Transition appear show={isLegendModalOpen} as={Fragment}>
+        <Dialog as="div" className="dialog-root" onClose={() => setIsLegendModalOpen(false)}>
+        <Transition.Child
+            as={Fragment}
+            enter="dialog-backdrop-enter-active"
+            enterFrom="dialog-backdrop-enter-from"
+            enterTo="dialog-backdrop-enter-to"
+            leave="dialog-backdrop-leave-active"
+            leaveFrom="dialog-backdrop-leave-from"
+            leaveTo="dialog-backdrop-leave-to"
+          >
+            <div className="dialog-backdrop" />
+          </Transition.Child>
+          <div className="dialog-container">
+          <Transition.Child
+              as={Fragment}
+              enter="dialog-panel-enter-active"
+              enterFrom="dialog-panel-enter-from"
+              enterTo="dialog-panel-enter-to"
+              leave="dialog-panel-leave-active"
+              leaveFrom="dialog-panel-leave-from"
+              leaveTo="dialog-panel-leave-to"
+            >
+              <DialogPanel className="dialog-panel legend-modal-panel">
+                <DialogTitle className="dialog-title">Customize Your Legend Symbols</DialogTitle>
+                <Description as="div" className="dialog-description">
+                  Define the symbols (case-sensitive) you use in your challenge posts inside square brackets, like <code>[symbol]</code>. You can list multiple symbols for each status. The first symbol you list for each status will be used when this app generates new challenge codes.
+                </Description>
+                
+                <div className="legend-edit-section">
+                  {(['complete', 'ongoing', 'incomplete']).map((statusType) => (
+                    <div key={statusType} className="legend-status-group">
+                      <label htmlFor={`legend-${statusType}-0`}>{statusType.charAt(0).toUpperCase() + statusType.slice(1)} Symbols:</label>
+                      {(tempLegend[statusType] && Array.isArray(tempLegend[statusType]) && tempLegend[statusType].length > 0 ? tempLegend[statusType] : ['']).map((symbol, index) => (
+                        <div key={index} className="legend-symbol-input-group">
+                          <input
+                            type="text"
+                            id={`legend-${statusType}-${index}`}
+                            value={symbol}
+                            onChange={(e) => handleLegendInputChange(statusType, index, e.target.value)}
+                            placeholder="e.g. ✔️ or X"
+                            maxLength={5} 
+                          />
+                          {tempLegend[statusType] && tempLegend[statusType].length > 0 && (tempLegend[statusType].length > 1 || symbol !== '') && (
+                             <button onClick={() => handleRemoveLegendSymbol(statusType, index)} className="remove-symbol-btn" title="Remove symbol">×</button>
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={() => handleAddLegendSymbol(statusType)} className="add-symbol-btn">➕ Add for {statusType}</button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="dialog-actions legend-actions">
+                  <button className="button-secondary" onClick={() => {setUserLegend(DEFAULT_LEGEND); addToast("Legend reset to defaults.", "info"); setIsLegendModalOpen(false);}}>Reset to Defaults</button>
+                  <div>
+                    <button className="button-secondary" style={{marginRight: '8px'}} onClick={() => setIsLegendModalOpen(false)}>Cancel</button>
+                    <button onClick={saveUserLegend} className="dialog-close-btn">Save Legend</button>
+                  </div>
+                </div>
+              </DialogPanel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
+
     </div>
   );
 }
