@@ -1,4 +1,4 @@
-# AWC Tracker (v0.6.2)
+# AWC Tracker (v0.7.0)
 
 **Track your Anime Watching Club Challenge (AWC) progress with ease!**
 
@@ -14,8 +14,7 @@ This web application helps you parse your AWC forum posts, keep track of your on
 
 *   **Challenge Parsing:** Paste your AWC forum post code directly into the app.
 *   **AniList Integration:**
-    *   Log in with your AniList account to automatically check the status (Completed, Watching, etc.) of anime in your challenges against your personal AniList.
-    *   View your AniList profile picture and username.
+    *   Add you Anilist user id to the prompt, and have your anime list added to the tracking
 *   **Status Tracking:**
     *   Clearly see how your challenge status (e.g., `[✔️]`, `[❌]`, `[⭐]`) compares to your AniList status.
     *   Highlights discrepancies (e.g., completed on AniList but not in your challenge post).
@@ -38,7 +37,7 @@ This web application helps you parse your AWC forum posts, keep track of your on
 ## How to Use
 
 1.  **Visit the App:** [https://muchmeheu.github.io/AWC-Tracker/](https://muchmeheu.github.io/AWC-Tracker/)
-2.  **Login with AniList:** Click the "Login with AniList" button to authorize the app. This allows it to fetch your anime list statuses.
+2.  **Add your Anilist ID**
 3.  **Add a Challenge:**
     *   Copy the full BBCode for your AWC challenge from the AWC forums.
     *   Paste it into the "Add Challenge" text area.

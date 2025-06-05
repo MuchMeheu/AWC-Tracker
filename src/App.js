@@ -1,10 +1,9 @@
-import React, { useEffect, useState, Fragment, useMemo } from 'react';
+import React, { useEffect, useState, Fragment, useMemo, useCallback } from 'react';
 import './App.css';
 import awcLogo from './assets/ALAWClogo.png';
 import githubLogoSrc from './assets/github-white-icon.png';
 import { Description, Dialog, DialogPanel, DialogTitle, Transition } from '@headlessui/react';
 
-const CLIENT_ID = process.env.REACT_APP_ANILIST_CLIENT_ID;
 const ANILIST_API_DELAY_MS = parseInt(process.env.REACT_APP_ANILIST_API_DELAY_MS, 10) || 4000;
 
 const EmptyState = ({ message, subMessage }) => (
@@ -29,9 +28,10 @@ const Toast = ({ message, type = 'success', onDismiss }) => {
 };
 
 function App() {
-  const [token, setToken] = useState(null);
-  const [username, setUsername] = useState(null);
-  const [userAvatar, setUserAvatar] = useState(null);
+  const [anilistUsername, setAnilistUsername] = useState(() => localStorage.getItem('anilistUsername') || '');
+  const [tempUsername, setTempUsername] = useState(anilistUsername);
+  const [displayedUserAvatar, setDisplayedUserAvatar] = useState(null);
+
   const [rawCode, setRawCode] = useState('');
   const [postUrl, setPostUrl] = useState('');
   const APP_VERSION = process.env.REACT_APP_VERSION;
@@ -63,72 +63,161 @@ function App() {
   const [isAddingChallenge, setIsAddingChallenge] = useState(false);
   const [addChallengeErrors, setAddChallengeErrors] = useState([]);
   const [toasts, setToasts] = useState([]);
-  const [isRefreshingChallenge, setIsRefreshingChallenge] = useState(false);
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+  const [isRefreshingChallenge, setIsRefreshingChallenge] = useState(null);
+
 
   const [preferredTitle, setPreferredTitle] = useState(() => localStorage.getItem('preferredTitle') || 'romaji');
 
   useEffect(() => {
     localStorage.setItem('preferredTitle', preferredTitle);
   }, [preferredTitle]);
-
-  const addToast = (message, type = 'success') => {
+  
+  const addToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.random();
     setToasts(prevToasts => [...prevToasts, { id, message, type }]);
-  };
+  }, []); 
 
   const removeToast = (id) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   };
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const accessToken = new URLSearchParams(hash.substring(1)).get('access_token');
-      if (accessToken) {
-        setToken(accessToken);
-        localStorage.setItem('accessToken', accessToken);
-        window.location.hash = '';
-      }
-    } else {
-      const stored = localStorage.getItem('accessToken');
-      if (stored) setToken(stored);
+  
+  const fetchPublicUserData = useCallback(async (usernameToFetch) => {
+    if (!usernameToFetch) {
+      setDisplayedUserAvatar(null);
+      return;
     }
-  }, []);
+    const query = `query ($name: String) { User(name: $name) { avatar { medium } } }`;
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ query, variables: { name: usernameToFetch } })
+      });
+      const json = await response.json();
+      if (json.data?.User?.avatar?.medium) {
+        setDisplayedUserAvatar(json.data.User.avatar.medium);
+      } else {
+        setDisplayedUserAvatar(null);
+        if (!json.data?.User) addToast(`User "${usernameToFetch}" not found on AniList.`, 'warning');
+      }
+    } catch (error) {
+      console.error("Error fetching public user data:", error);
+      setDisplayedUserAvatar(null);
+      addToast(`Could not fetch avatar for ${usernameToFetch}.`, 'error');
+    }
+  }, [addToast]); 
 
   useEffect(() => {
-    if (!token) return;
-    fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: `query { Viewer { name avatar { medium } } }` })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.data && data.data.Viewer) {
-          setUsername(data.data.Viewer.name);
-          setUserAvatar(data.data.Viewer.avatar.medium);
-        } else {
-          console.error("Failed to fetch user data:", data.errors);
-        }
-      })
-      .catch(err => console.error("Error fetching user data:", err));
-  }, [token]);
+    if (anilistUsername) {
+      fetchPublicUserData(anilistUsername);
+    } else {
+      setDisplayedUserAvatar(null);
+    }
+  }, [anilistUsername, fetchPublicUserData]);
 
-  const loginAniList = () => {
-    const authUrl = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
-    window.location.href = authUrl;
-  };
 
-  const getDisplayTitle = (entry) => {
+  const fetchUserAnimeList = useCallback(async (usernameToFetch) => {
+    if (!usernameToFetch) {
+      addToast("AniList username is required to fetch list statuses.", 'warning');
+      return { completedIds: new Set(), currentIds: new Set(), error: true };
+    }
+    const query = `query ($userName: String) { MediaListCollection(userName: $userName, type: ANIME) { lists { entries { mediaId status } } } }`;
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ query, variables: { userName: usernameToFetch } })
+      });
+      const json = await response.json();
+      if (!response.ok || json.errors?.length) {
+        const errorMessages = json.errors ? json.errors.map(e => e.message).join(', ') : `User "${usernameToFetch}" not found or list private (Status ${response.status})`;
+        console.error("Failed to fetch user anime list:", errorMessages);
+        addToast(`Error fetching ${usernameToFetch}'s AniList: ${errorMessages}`, 'error');
+        return { completedIds: new Set(), currentIds: new Set(), error: true };
+      }
+      if (json.data?.MediaListCollection) {
+        const allEntries = json.data.MediaListCollection.lists.flatMap(list => list.entries);
+        const completedIds = new Set(allEntries.filter(e => e.status === 'COMPLETED').map(e => e.mediaId));
+        const currentIds = new Set(allEntries.filter(e => e.status === 'CURRENT').map(e => e.mediaId));
+        return { completedIds, currentIds };
+      }
+    } catch (error) {
+      console.error("Network error fetching user anime list:", error);
+      addToast(`Network error fetching ${usernameToFetch}'s AniList: ${error.message}`, 'error');
+    }
+    return { completedIds: new Set(), currentIds: new Set(), error: true };
+  }, [addToast]);
+
+
+  const handleRefreshAllChallenges = useCallback(async (newUsername) => {
+    if (!newUsername || challenges.length === 0) return;
+    setIsRefreshingAll(true);
+    addToast(`Refreshing all challenges for ${newUsername}...`, 'info');
+
+    const userList = await fetchUserAnimeList(newUsername);
+    if (userList.error) {
+      setIsRefreshingAll(false);
+      addToast(`Could not get ${newUsername}'s list. Refresh failed.`, 'error');
+      return;
+    }
+
+    const updatedChallengesData = challenges.map(challenge => {
+      const updatedEntries = challenge.entries.map(entry => ({
+        ...entry,
+        statusAniList: userList.completedIds.has(parseInt(entry.animeId)) ? 'complete'
+                       : userList.currentIds.has(parseInt(entry.animeId)) ? 'ongoing'
+                       : 'incomplete'
+      }));
+      return { ...challenge, entries: updatedEntries };
+    });
+
+    setChallenges(updatedChallengesData);
+    localStorage.setItem('awcChallenges', JSON.stringify(updatedChallengesData));
+    if(selectedChallenge){ 
+        const currentlySelected = updatedChallengesData.find(ch => ch.id === selectedChallenge.id);
+        if(currentlySelected) setSelectedChallenge(currentlySelected);
+    }
+    setIsRefreshingAll(false);
+    addToast(`All challenges refreshed for ${newUsername}.`, 'success');
+  }, [challenges, fetchUserAnimeList, addToast, selectedChallenge]);
+
+
+  const handleUsernameSave = useCallback(async () => {
+    const newUsername = tempUsername.trim();
+    if (newUsername && newUsername !== anilistUsername) {
+      setAnilistUsername(newUsername);
+      localStorage.setItem('anilistUsername', newUsername);
+      addToast(`AniList username set to: ${newUsername}`, 'success');
+      await fetchPublicUserData(newUsername); 
+      if (challenges.length > 0) {
+        await handleRefreshAllChallenges(newUsername); 
+      }
+    } else if (!newUsername && anilistUsername) {
+      setAnilistUsername('');
+      setDisplayedUserAvatar(null);
+      localStorage.removeItem('anilistUsername');
+      addToast('AniList username cleared.', 'info');
+    } else if (newUsername && newUsername === anilistUsername) {
+        addToast(`Username "${newUsername}" is already set.`, 'info');
+    }
+  }, [tempUsername, anilistUsername, fetchPublicUserData, challenges, handleRefreshAllChallenges, addToast]);
+  
+  useEffect(() => {
+    setTempUsername(anilistUsername);
+  }, [anilistUsername]);
+
+
+  const getDisplayTitle = useCallback((entry) => {
     if (!entry) return 'Unknown Title';
     return (preferredTitle === 'english' && entry.englishTitle) ? entry.englishTitle : (entry.romajiTitle || 'Unknown Title');
-  };
+  }, [preferredTitle]);
 
-  const fetchAnime = async (animeId) => {
+  const fetchAnime = useCallback(async (animeId) => {
     const query = `query ($id: Int) { Media(id: $id, type: ANIME) { id title { romaji english } coverImage { medium } } }`;
     try {
       const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ query, variables: { id: parseInt(animeId) } })
       });
       const json = await response.json();
@@ -144,41 +233,14 @@ function App() {
       console.warn(`Network error fetching anime ID ${animeId}:`, err.message);
       return { error: `Network error fetching ID ${animeId}: ${err.message}` };
     }
-  };
+  }, []);
 
-  const fetchUserAnimeList = async () => {
-    if (!username) {
-      console.warn("Username not available for fetching anime list.");
-      return { completedIds: new Set(), currentIds: new Set(), error: true };
+  const handleAddChallenge = useCallback(async () => {
+    if (!rawCode) { addToast("Challenge code cannot be empty.", "warning"); return;}
+    if (!anilistUsername) {
+        addToast("Please set your AniList username first in the sidebar.", "warning");
+        return;
     }
-    const query = `query ($userName: String) { MediaListCollection(userName: $userName, type: ANIME) { lists { entries { mediaId status } } } }`;
-    try {
-      const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, variables: { userName: username } })
-      });
-      const json = await response.json();
-      if (!response.ok || json.errors?.length) {
-        const errorMessages = json.errors ? json.errors.map(e => e.message).join(', ') : `Status ${response.status}`;
-        console.error("Failed to fetch user anime list:", errorMessages);
-        addToast(`Error fetching your AniList: ${errorMessages}`, 'error');
-        return { completedIds: new Set(), currentIds: new Set(), error: true };
-      }
-      if (json.data?.MediaListCollection) {
-        const allEntries = json.data.MediaListCollection.lists.flatMap(list => list.entries);
-        const completedIds = new Set(allEntries.filter(e => e.status === 'COMPLETED').map(e => e.mediaId));
-        const currentIds = new Set(allEntries.filter(e => e.status === 'CURRENT').map(e => e.mediaId));
-        return { completedIds, currentIds };
-      }
-    } catch (error) {
-      console.error("Network error fetching user anime list:", error);
-      addToast(`Network error fetching your AniList: ${error.message}`, 'error');
-    }
-    return { completedIds: new Set(), currentIds: new Set(), error: true };
-  };
-
-  const handleAddChallenge = async () => {
-    if (!rawCode) return;
     setIsAddingChallenge(true); setAddChallengeErrors([]); const localErrors = [];
     try {
       const lines = rawCode.split('\n').map(line => line.trim());
@@ -195,8 +257,9 @@ function App() {
           if (animeId) entries.push({ animeId, title: titleFromPost, statusChallenge, startDate: startMatch?.[1], endDate: endMatch?.[1] });
         }
       }
-      const userList = token ? await fetchUserAnimeList() : { completedIds: new Set(), currentIds: new Set() };
-      if (userList.error && token) localErrors.push("Could not verify AniList statuses. Challenge data might be based on post only.");
+      
+      const userList = await fetchUserAnimeList(anilistUsername);
+      if (userList.error) localErrors.push(`Could not fetch AniList data for ${anilistUsername}. Challenge statuses from post will be used.`);
 
       const enriched = [];
       for (let i = 0; i < entries.length; i++) {
@@ -220,15 +283,15 @@ function App() {
         setIsAddingChallenge(false); return;
       }
       const newChallenge = { id: Date.now(), title: autoTitle, postUrl, entries: filtered };
-      const updatedChallenges = [...challenges, newChallenge];
-      setChallenges(updatedChallenges); localStorage.setItem('awcChallenges', JSON.stringify(updatedChallenges));
+      const updatedChallengesData = [...challenges, newChallenge];
+      setChallenges(updatedChallengesData); localStorage.setItem('awcChallenges', JSON.stringify(updatedChallengesData));
       setRawCode(''); setPostUrl(''); addToast(`Challenge "${autoTitle}" added!`, 'success');
     } catch (error) {
       console.error("Error adding challenge:", error);
       setAddChallengeErrors(prev => [...prev, `Unexpected error: ${error.message}`]);
       addToast("Failed to add challenge.", 'error');
     } finally { setIsAddingChallenge(false); }
-  };
+  }, [rawCode, anilistUsername, challenges, postUrl, fetchUserAnimeList, fetchAnime, addToast]);
 
   const deleteChallenge = (id) => {
     const challengeToDelete = challenges.find(ch => ch.id === id);
@@ -240,42 +303,44 @@ function App() {
     }
   };
 
-  const generateChallengeCode = (challenge) => {
+  const generateChallengeCode = useCallback((challenge) => {
     const header = `#__${challenge.title}__\n\nChallenge Start Date: YYYY-MM-DD\nChallenge Finish Date: YYYY-MM-DD\nLegend: [✔️] = Completed [❌] = Not Completed [⭐] = Ongoing\n\n<hr>\n`;
     const blocks = challenge.entries.map((entry, i) => {
       let symbol = entry.statusAniList === 'complete' ? '✔️' : entry.statusAniList === 'ongoing' ? '⭐' : (entry.statusChallenge === 'complete' ? '✔️' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌');
       return `${String(i + 1).padStart(2, '0')}) [${symbol}] __${getDisplayTitle(entry)}__\nhttps://anilist.co/anime/${entry.animeId}/\nStart: ${entry.startDate || 'YYYY-MM-DD'} Finish: ${entry.endDate || 'YYYY-MM-DD'}`;
     });
     return header + blocks.join('\n\n');
-  };
+  }, [getDisplayTitle]);
 
-  const handleCopyChallengeCode = (challenge) => {
+  const handleCopyChallengeCode = useCallback((challenge) => {
     navigator.clipboard.writeText(generateChallengeCode(challenge));
     addToast("Challenge code copied!", 'success');
-  };
+  }, [generateChallengeCode, addToast]);
 
-  const handleCopyPostUrl = (challenge) => {
+  const handleCopyPostUrl = useCallback((challenge) => {
     navigator.clipboard.writeText(challenge.postUrl || '');
     addToast("Post URL copied!", 'success');
-  };
+  }, [addToast]);
 
-  const handleRefreshChallengeStatus = async (challengeId) => {
-    if (!token) { addToast("Please login with AniList to refresh.", 'error'); return; }
+  const handleRefreshSingleChallengeStatus = useCallback(async (challengeId) => {
+    if (!anilistUsername) { addToast("Please set your AniList username to refresh.", 'warning'); return; }
     const challengeToRefresh = challenges.find(ch => ch.id === challengeId);
     if (!challengeToRefresh) { addToast("Challenge not found.", 'error'); return; }
-    setIsRefreshingChallenge(true); addToast(`Refreshing "${challengeToRefresh.title}"...`, 'info');
-    const userList = await fetchUserAnimeList();
-    if (userList.error) { setIsRefreshingChallenge(false); return; }
+    setIsRefreshingChallenge(challengeId); addToast(`Refreshing "${challengeToRefresh.title}" for ${anilistUsername}...`, 'info');
+    
+    const userList = await fetchUserAnimeList(anilistUsername);
+    if (userList.error) { setIsRefreshingChallenge(null); return; }
+
     const updatedEntries = challengeToRefresh.entries.map(entry => ({
       ...entry,
       statusAniList: userList.completedIds.has(parseInt(entry.animeId)) ? 'complete' : userList.currentIds.has(parseInt(entry.animeId)) ? 'ongoing' : 'incomplete'
     }));
-    await new Promise(res => setTimeout(res, 200 * Math.min(challengeToRefresh.entries.length, 5)));
-    const updatedChallenges = challenges.map(ch => ch.id === challengeId ? { ...ch, entries: updatedEntries } : ch);
-    setChallenges(updatedChallenges); localStorage.setItem('awcChallenges', JSON.stringify(updatedChallenges));
-    if (selectedChallenge?.id === challengeId) setSelectedChallenge(updatedChallenges.find(ch => ch.id === challengeId));
-    setIsRefreshingChallenge(false); addToast(`"${challengeToRefresh.title}" refreshed!`, 'success');
-  };
+    await new Promise(res => setTimeout(res, 300)); 
+    const updatedChallengesData = challenges.map(ch => ch.id === challengeId ? { ...ch, entries: updatedEntries } : ch);
+    setChallenges(updatedChallengesData); localStorage.setItem('awcChallenges', JSON.stringify(updatedChallengesData));
+    if (selectedChallenge?.id === challengeId) setSelectedChallenge(updatedChallengesData.find(ch => ch.id === challengeId));
+    setIsRefreshingChallenge(null); addToast(`"${challengeToRefresh.title}" refreshed for ${anilistUsername}!`, 'success');
+  }, [anilistUsername, challenges, fetchUserAnimeList, selectedChallenge, addToast]);
 
   const globalAnime = useMemo(() => (
     challenges.flatMap(ch => ch.entries).reduce((acc, anime) => {
@@ -286,18 +351,22 @@ function App() {
     }, {})
   ), [challenges]);
 
-  const getEffectiveChallengeStatus = (anime) => {
+  const getEffectiveChallengeStatus = useCallback((anime) => {
     if (!anime?.challengeStatuses) return 'incomplete';
     if (anime.challengeStatuses.includes('complete')) return 'complete';
     if (anime.challengeStatuses.includes('ongoing')) return 'ongoing';
     return 'incomplete';
-  };
+  }, []);
 
   const handleClearAllData = () => {
-    if (window.confirm("ARE YOU SURE?\nThis deletes ALL saved challenges & logs you out.\nCANNOT be undone.")) {
+    if (window.confirm("ARE YOU SURE?\nThis deletes ALL saved challenges & your AniList username.\nCANNOT be undone.")) {
       if (window.confirm("FINAL CONFIRMATION:\nReally delete all data?")) {
-        localStorage.removeItem('awcChallenges'); localStorage.removeItem('accessToken'); localStorage.removeItem('preferredTitle'); localStorage.removeItem('theme');
-        setChallenges([]); setToken(null); setUsername(null); setUserAvatar(null);
+        localStorage.removeItem('awcChallenges'); 
+        localStorage.removeItem('anilistUsername');
+        localStorage.removeItem('preferredTitle'); 
+        localStorage.removeItem('theme');
+        setChallenges([]); 
+        setAnilistUsername(''); setTempUsername(''); setDisplayedUserAvatar(null);
         setSelectedChallenge(null); setRawCode(''); setPostUrl(''); setAddChallengeErrors([]);
         setPreferredTitle('romaji'); setTheme('dark'); setIsOpen(false); addToast("All app data cleared.", 'info');
       }
@@ -308,12 +377,12 @@ function App() {
     setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
-  const renderChallengeDetail = (challenge) => (
+  const renderChallengeDetail = useCallback((challenge) => (
     <div className="challenge-detail-view">
       <button className="back-button" onClick={() => setSelectedChallenge(null)}>⬅️ Back</button>
       <div className="challenge-detail-header">
         <h2>{challenge.title}</h2>
-        {token && <button onClick={() => handleRefreshChallengeStatus(challenge.id)} disabled={isRefreshingChallenge} className="refresh-challenge-btn">{isRefreshingChallenge ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}</button>}
+        {anilistUsername && <button onClick={() => handleRefreshSingleChallengeStatus(challenge.id)} disabled={isRefreshingChallenge === challenge.id} className="refresh-challenge-btn">{isRefreshingChallenge === challenge.id ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}</button>}
       </div>
       {challenge.postUrl && <p className="challenge-post-url">Post URL: <a href={challenge.postUrl} target="_blank" rel="noreferrer">{challenge.postUrl}</a></p>}
       {challenge.entries.length === 0 ? (<EmptyState message="No anime entries in this challenge." />) : (
@@ -331,7 +400,7 @@ function App() {
         </ul>
       )}
     </div>
-  );
+  ), [anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus]);
 
   return (
     <div className="App">
@@ -342,12 +411,35 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-top-content">
           <div onClick={() => setSelectedChallenge(null)} className="app-title-container">
-            <img src={awcLogo} alt="AWC Logo" className="app-logo" />
+            <img src={awcLogo} alt="AWC Tracker Logo" className="app-logo" />
             <span className="app-title-text">AWC Tracker</span>
           </div>
-          {!token ? (<button onClick={loginAniList} className="login-button">🔑 Login with AniList</button>)
-            : username ? (<a href={`https://anilist.co/user/${username}`} target="_blank" rel="noreferrer" className="profile-display"><img className="avatar" src={userAvatar} alt="Avatar" /><span>{username}</span></a>)
-            : (<p className="loading-user-text">Loading user...</p>)}
+          
+          <div className="anilist-username-section">
+            <input 
+              type="text"
+              className="anilist-username-input"
+              placeholder="AniList Username"
+              value={tempUsername}
+              onChange={(e) => setTempUsername(e.target.value)}
+              onKeyDown={(e) => {if (e.key === 'Enter') handleUsernameSave();}}
+            />
+            <button 
+                onClick={handleUsernameSave} 
+                className="anilist-username-save-btn"
+                disabled={isRefreshingAll}
+            >
+              {isRefreshingAll ? '🔄...' : (anilistUsername && anilistUsername === tempUsername.trim() && tempUsername.trim() !== '' ? '✔️ Set' : 'Set')}
+            </button>
+          </div>
+
+          {anilistUsername && (
+            <div className="current-anilist-user">
+              {displayedUserAvatar && <img src={displayedUserAvatar} alt={anilistUsername} className="current-user-avatar" />}
+              <span>Tracking for: <a href={`https://anilist.co/user/${anilistUsername}/animelist`} target="_blank" rel="noopener noreferrer">{anilistUsername}</a></span>
+            </div>
+          )}
+
           <h3>Saved Challenges</h3>
         </div>
         {challenges.length === 0 ? (<EmptyState message="No challenges saved." subMessage="Add one in the main panel." />)
@@ -400,7 +492,8 @@ function App() {
               <h2>➕ Add Challenge</h2>
               <textarea value={rawCode} onChange={(e) => setRawCode(e.target.value)} rows={8} placeholder="Paste challenge code here..." />
               <input type="text" placeholder="Optional: Forum post URL" value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
-              <button onClick={handleAddChallenge} disabled={isAddingChallenge}>{isAddingChallenge ? '⏳ Adding...' : '➕ Save Challenge'}</button>
+              <button onClick={handleAddChallenge} disabled={isAddingChallenge || !anilistUsername}>{isAddingChallenge ? '⏳ Adding...' : '➕ Save Challenge'}</button>
+              {!anilistUsername && <p className="username-required-note">Please set your AniList username in the sidebar to add challenges.</p>}
               {addChallengeErrors.length > 0 && (<div className="challenge-add-errors"><h4>Encountered issues:</h4>{addChallengeErrors.map((err, i) => <p key={i} className="error-item">{err}</p>)}</div>)}
             </div>
 
@@ -477,12 +570,12 @@ function App() {
                 <Description as="div" className="dialog-description">
                   <p>This tool helps you track your Anime Watching Club Challenges (AWC) progress by parsing your forum posts and comparing them with your AniList activity.</p>
                   <ul className="dialog-list">
-                    <li><strong>🔑 Login with AniList:</strong> Click “Login with AniList” to connect your account. This allows the tracker to check your current anime list statuses on AniList. Your token is stored locally in your browser.</li>
+                    <li><strong>👤 Set AniList Username:</strong> Enter your AniList username in the sidebar and click "Set". This is required to fetch your list statuses and add challenges. Your username is stored locally. When you change or set a username, all existing challenges will attempt to refresh their AniList statuses.</li>
                     <li><strong>➕ Add Challenge:</strong>
                         <ul>
                             <li>Paste your full challenge code (e.g., from an AWC forum post) into the text area.</li>
                             <li>Optionally, add the URL of your forum post for easy reference and linking to the AWC Editor.</li>
-                            <li>Click “Save Challenge.” The app will then fetch details for each anime from AniList.</li>
+                            <li>Click “Save Challenge.” The app will then fetch details for each anime from AniList and compare with your specified AniList account.</li>
                         </ul>
                     </li>
                     <li><strong>❗ Status Parsing from Your Post (Important!):</strong>
@@ -515,12 +608,12 @@ function App() {
                             <li>In the right "Manage" panel, for each challenge:
                                 <ul>
                                     <li>Copy the post URL (if you added one).</li>
-                                    <li>Copy an updated challenge code (uses your preferred title display) to paste back into forums. This generated code uses your *current AniList statuses* to suggest the symbols (✔️, ⭐, ❌).</li>
+                                    <li>Copy an updated challenge code (uses your preferred title display) to paste back into forums. This generated code uses your *current AniList statuses* (for the set username) to suggest the symbols (✔️, ⭐, ❌).</li>
                                     <li>Link to the AWC Editor (if a post URL is provided).</li>
                                     <li>Delete a challenge (you will be asked to confirm).</li>
                                 </ul>
                             </li>
-                            <li>When viewing a challenge's details, you can click "Refresh AniList Status" to update its entries based on your current AniList activity (requires login).</li>
+                            <li>When viewing a challenge's details, you can click "Refresh AniList Status" to update its entries based on your current AniList activity (for the set username).</li>
                         </ul>
                     </li>
                      <li><strong>⚠️ Discrepancies:</strong> If an anime is marked "complete" (✅) on AniList but still shows as "incomplete" (❌) in your challenge (e.g., your post used `[O]` or `[❌]`), the tracker will highlight this, reminding you to update your forum post with a 'completed' symbol like `[✔️]` or `[X]`.</li>
