@@ -475,7 +475,6 @@ li.anime-entry-item {
 .add-challenge-section { margin-bottom: 2rem; }
 
 .back-button { margin-bottom: 1rem; }
-.challenge-detail-view {}
 .challenge-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .challenge-detail-progress { margin-bottom: 1rem; }
 .challenge-post-url { font-size: 0.9em; margin-bottom: 1rem; word-break: break-all; color: var(--text-tertiary); }
@@ -493,21 +492,21 @@ li.anime-entry-item {
   align-items: flex-start; transition: background-color 0.3s ease;
 }
 .manage-challenge-details { flex: 1; padding-right: 0.5em; }
-/* .manage-challenge-progress { font-size: 0.9em; color: var(--text-subtle); display: block; margin: 0.25em 0 0.5em; } */
+
 
 .progress-bar-container {
   width: 100%;
-  height: 20px; /* Or your desired height */
+  height: 20px; 
   background-color: var(--progress-bar-bg);
   border-radius: 4px;
-  margin: 0.5em 0; /* Spacing around the progress bar */
-  position: relative; /* For positioning text inside */
-  overflow: hidden; /* Ensure filled part respects border-radius */
+  margin: 0.5em 0;
+  position: relative;
+  overflow: hidden; 
 }
 .progress-bar-filled {
   height: 100%;
   background-color: var(--progress-bar-fill);
-  border-radius: 4px; /* Match container, or 4px 0 0 4px for sharper end */
+  border-radius: 4px; 
   transition: width 0.3s ease-in-out;
 }
 .progress-bar-text {
@@ -522,8 +521,8 @@ li.anime-entry-item {
   font-size: 0.75em;
   font-weight: 600;
   color: var(--progress-bar-text-color);
-  line-height: 20px; /* Match container height */
-  text-shadow: 0 0 2px rgba(0,0,0,0.5); /* Optional shadow for readability */
+  line-height: 20px; 
+  text-shadow: 0 0 2px rgba(0,0,0,0.5); 
 }
 
 
