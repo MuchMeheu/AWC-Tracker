@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/AWC-Tracker/static/css/main.a1a40e89.css",
-    "main.js": "/AWC-Tracker/static/js/main.eb525609.js",
+    "main.css": "/AWC-Tracker/static/css/main.d4e16e38.css",
+    "main.js": "/AWC-Tracker/static/js/main.0d9c7a3e.js",
     "static/js/453.4a625623.chunk.js": "/AWC-Tracker/static/js/453.4a625623.chunk.js",
     "static/media/ALAWClogo.png": "/AWC-Tracker/static/media/ALAWClogo.499c8e5539b6a6b3fd57.png",
     "static/media/github-white-icon.png": "/AWC-Tracker/static/media/github-white-icon.cc7d438083610e33e8f7.png",
     "index.html": "/AWC-Tracker/index.html",
-    "main.a1a40e89.css.map": "/AWC-Tracker/static/css/main.a1a40e89.css.map",
-    "main.eb525609.js.map": "/AWC-Tracker/static/js/main.eb525609.js.map",
+    "main.d4e16e38.css.map": "/AWC-Tracker/static/css/main.d4e16e38.css.map",
+    "main.0d9c7a3e.js.map": "/AWC-Tracker/static/js/main.0d9c7a3e.js.map",
     "453.4a625623.chunk.js.map": "/AWC-Tracker/static/js/453.4a625623.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a1a40e89.css",
-    "static/js/main.eb525609.js"
+    "static/css/main.d4e16e38.css",
+    "static/js/main.0d9c7a3e.js"
   ]
 }
