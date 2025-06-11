@@ -56,7 +56,7 @@ function App() {
   const [tempChallengeTitle, setTempChallengeTitle] = useState('');
   const [rawCode, setRawCode] = useState('');
   const [postUrl, setPostUrl] = useState('');
-  const APP_VERSION = process.env.REACT_APP_VERSION || "0.9.0";
+  const APP_VERSION = process.env.REACT_APP_VERSION || "0.9.2";
   const GITHUB_REPO_URL = "https://github.com/MuchMeheu/AWC-Tracker";
   const MY_ANILIST_PROFILE_URL = "https://anilist.co/user/Meheu/";
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
@@ -113,11 +113,8 @@ function App() {
   const [globalViewMode, setGlobalViewMode] = useState(() => localStorage.getItem('globalViewMode') || 'list');
   const [globalFilter, setGlobalFilter] = useState(() => localStorage.getItem('globalFilter') || 'all');
   const [globalSort, setGlobalSort] = useState(() => localStorage.getItem('globalSort') || 'title-asc');
-  const [globalTagFilter, setGlobalTagFilter] = useState(() => localStorage.getItem('globalTagFilter') || ''); 
-  const [globalGenreFilter, setGlobalGenreFilter] = useState(() => localStorage.getItem('globalGenreFilter') || ''); 
-  const [editingEntry, setEditingEntry] = useState({ challengeId: null, entryId: null });
-  const [tempAnimeIdForEntry, setTempAnimeIdForEntry] = useState('');
-  const [isSubmittingEntryAnime, setIsSubmittingEntryAnime] = useState(false);
+  const [globalTagFilter, setGlobalTagFilter] = useState('');
+  const [globalGenreFilter, setGlobalGenreFilter] = useState('');
 
   useEffect(() => {
     localStorage.setItem('preferredTitle', preferredTitle);
@@ -134,14 +131,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('globalSort', globalSort);
   }, [globalSort]);
-
-  useEffect(() => {
-    localStorage.setItem('globalTagFilter', globalTagFilter);
-  }, [globalTagFilter]);
-
-  useEffect(() => {
-    localStorage.setItem('globalGenreFilter', globalGenreFilter);
-  }, [globalGenreFilter]);
 
   const addToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.random();
@@ -427,8 +416,6 @@ function App() {
           englishTitle: null,
           image: null,
           statusAniList: 'incomplete',
-          genres: [],
-          tags: [],  
         };
         const idFromPost = currentPostEntry.animeId;
         if (idFromPost && idFromPost !== '00000' && parseInt(idFromPost, 10) !== 0) {
@@ -443,7 +430,7 @@ function App() {
             entryBase.englishTitle = info.title.english;
             entryBase.image = info.coverImage.medium;
             entryBase.genres = info.genres || [];
-            entryBase.tags = info.tags || [];    
+            entryBase.tags = info.tags || [];
             if (!userList.error) {
               entryBase.statusAniList = userList.completedIds.has(parseInt(idFromPost)) ? 'complete'
                 : userList.currentIds.has(parseInt(idFromPost)) ? 'ongoing'
@@ -513,109 +500,6 @@ function App() {
   const handleCancelEditTitle = () => {
     setEditingChallengeId(null);
     setTempChallengeTitle('');
-  };
-
-  const handleStartEditAnimeForRequirement = (currentChallengeId, entry) => {
-    setEditingEntry({ challengeId: currentChallengeId, entryId: entry.id });
-    setTempAnimeIdForEntry(entry.animeId || ''); 
-  };
-
-  const handleCancelEditAnimeForRequirement = () => {
-    setEditingEntry({ challengeId: null, entryId: null });
-    setTempAnimeIdForEntry('');
-    setIsSubmittingEntryAnime(false);
-  };
-
-  const handleSaveAnimeForRequirement = async () => {
-    if (!editingEntry.challengeId || !editingEntry.entryId) return;
-    
-    const newAnimeIdToSave = tempAnimeIdForEntry.trim();
-
-    if (newAnimeIdToSave === '' || newAnimeIdToSave === '0' || newAnimeIdToSave === '00000') {
-      const updatedChallenges = challenges.map(ch => {
-        if (ch.id === editingEntry.challengeId) {
-          const updatedEntries = ch.entries.map(e => {
-            if (e.id === editingEntry.entryId) {
-              return {
-                ...e,
-                animeId: null, romajiTitle: null, englishTitle: null, image: null,
-                statusAniList: 'incomplete', genres: [], tags: [],
-              };
-            }
-            return e;
-          });
-          return { ...ch, entries: updatedEntries };
-        }
-        return ch;
-      });
-      setChallenges(updatedChallenges);
-      localStorage.setItem('awcChallenges', JSON.stringify(updatedChallenges));
-      if (selectedChallenge && selectedChallenge.id === editingEntry.challengeId) {
-        setSelectedChallenge(updatedChallenges.find(ch => ch.id === editingEntry.challengeId));
-      }
-      addToast('Anime removed from requirement.', 'info');
-      handleCancelEditAnimeForRequirement();
-      return;
-    }
-    
-    if (!/^\d+$/.test(newAnimeIdToSave) || parseInt(newAnimeIdToSave, 10) === 0) {
-      addToast("Invalid AniList ID. Enter numbers only or leave blank/0 to unfill.", "warning");
-      return;
-    }
-
-    setIsSubmittingEntryAnime(true);
-    const animeInfo = await fetchAnime(newAnimeIdToSave);
-
-    if (animeInfo.error) {
-      addToast(`Error fetching ID ${newAnimeIdToSave}: ${animeInfo.error}`, 'error');
-      setIsSubmittingEntryAnime(false);
-      return;
-    }
-
-    let newStatusAniList = 'incomplete';
-    if (anilistUsername) {
-      const userList = await fetchUserAnimeList(anilistUsername); 
-      if (!userList.error) {
-        if (userList.completedIds.has(parseInt(newAnimeIdToSave))) {
-          newStatusAniList = 'complete';
-        } else if (userList.currentIds.has(parseInt(newAnimeIdToSave))) {
-          newStatusAniList = 'ongoing';
-        }
-      }
-    }
-
-    const updatedChallenges = challenges.map(ch => {
-      if (ch.id === editingEntry.challengeId) {
-        const updatedEntries = ch.entries.map(e => {
-          if (e.id === editingEntry.entryId) {
-            return {
-              ...e,
-              animeId: newAnimeIdToSave,
-              romajiTitle: animeInfo.title.romaji,
-              englishTitle: animeInfo.title.english,
-              image: animeInfo.coverImage.medium,
-              genres: animeInfo.genres || [],
-              tags: animeInfo.tags || [],
-              statusAniList: newStatusAniList,
-            };
-          }
-          return e;
-        });
-        return { ...ch, entries: updatedEntries };
-      }
-      return ch;
-    });
-
-    setChallenges(updatedChallenges);
-    localStorage.setItem('awcChallenges', JSON.stringify(updatedChallenges));
-
-    if (selectedChallenge && selectedChallenge.id === editingEntry.challengeId) {
-      setSelectedChallenge(updatedChallenges.find(ch => ch.id === editingEntry.challengeId));
-    }
-    
-    const displayableTitle = animeInfo.title ? animeInfo.title : { romajiTitle: "Fetched Anime" };
-    addToast(`Requirement updated with ${getDisplayTitle(displayableTitle)}.`, 'success');
-    handleCancelEditAnimeForRequirement();
   };
 
   const deleteChallenge = (id) => {
@@ -763,8 +647,6 @@ function App() {
         localStorage.removeItem('globalViewMode');
         localStorage.removeItem('globalFilter');
         localStorage.removeItem('globalSort');
-        localStorage.removeItem('globalTagFilter'); 
-        localStorage.removeItem('globalGenreFilter'); 
         setChallenges([]);
         setAnilistUsername(''); setTempUsername(''); setDisplayedUserAvatar(null); setDisplayedUserBanner(null);
         setSelectedChallenge(null); setRawCode(''); setPostUrl(''); setAddChallengeErrors([]);
@@ -772,8 +654,6 @@ function App() {
         setGlobalViewMode('list');
         setGlobalFilter('all');
         setGlobalSort('title-asc');
-        setGlobalTagFilter(''); 
-        setGlobalGenreFilter(''); 
         setIsHelpModalOpen(false); setIsLegendModalOpen(false); addToast("All app data cleared.", 'info');
       }
     }
@@ -865,9 +745,7 @@ function App() {
       appVersion: APP_VERSION,
       globalViewMode,
       globalFilter,
-      globalSort,
-      globalTagFilter,    
-      globalGenreFilter
+      globalSort
     };
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
     const link = document.createElement("a");
@@ -903,8 +781,6 @@ function App() {
               setGlobalViewMode(importedData.globalViewMode || 'list');
               setGlobalFilter(importedData.globalFilter || 'all');
               setGlobalSort(importedData.globalSort || 'title-asc');
-              setGlobalTagFilter(importedData.globalTagFilter || ''); 
-              setGlobalGenreFilter(importedData.globalGenreFilter || ''); 
               localStorage.setItem('anilistUsername', importedData.anilistUsername || '');
               localStorage.setItem('theme', importedData.theme || 'dark');
               localStorage.setItem('preferredTitle', importedData.preferredTitle || 'romaji');
@@ -913,8 +789,6 @@ function App() {
               localStorage.setItem('globalViewMode', importedData.globalViewMode || 'list');
               localStorage.setItem('globalFilter', importedData.globalFilter || 'all');
               localStorage.setItem('globalSort', importedData.globalSort || 'title-asc');
-              localStorage.setItem('globalTagFilter', importedData.globalTagFilter || ''); 
-              localStorage.setItem('globalGenreFilter', importedData.globalGenreFilter || ''); 
               addToast("Data imported successfully! Refreshing challenges...", "success");
               if (importedData.anilistUsername && (importedData.challenges || []).length > 0) {
                 handleRefreshAllChallenges(importedData.anilistUsername);
@@ -939,16 +813,13 @@ function App() {
     const completedOnAniList = challenge.entries.filter(e => e.animeId && e.statusAniList === 'complete').length;
     const totalFilledEntries = challenge.entries.filter(e => e.animeId).length;
     const totalRequirements = challenge.entries.length;
-    const isEditingThisTitle = editingChallengeId === challenge.id; 
-
+    const isEditingThisTitle = editingChallengeId === challenge.id;
     return (
       <div className="challenge-detail-view">
         <button className="back-button" onClick={() => {
-          if (isEditingThisTitle) handleCancelEditTitle(); 
-          if (editingEntry.challengeId) handleCancelEditAnimeForRequirement(); 
+          if (isEditingThisTitle) handleCancelEditTitle();
           setSelectedChallenge(null);
         }}>⬅️ Back</button>
-
         <div className="challenge-detail-header">
           {isEditingThisTitle ? (
             <div className="title-edit-container">
@@ -970,108 +841,56 @@ function App() {
             </>
           )}
         </div>
-        
         {!isEditingThisTitle && anilistUsername && (
-            <div className="challenge-detail-actions">
-                 <button 
-                    onClick={() => handleRefreshSingleChallengeStatus(challenge.id)} 
-                    disabled={isRefreshingChallenge === challenge.id || editingEntry.challengeId !== null} 
-                    className="refresh-challenge-btn"
-                  >
-                    {isRefreshingChallenge === challenge.id ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}
-                  </button>
-            </div>
+          <div className="challenge-detail-actions">
+            <button onClick={() => handleRefreshSingleChallengeStatus(challenge.id)} disabled={isRefreshingChallenge === challenge.id} className="refresh-challenge-btn">{isRefreshingChallenge === challenge.id ? '🔄 Refreshing...' : '🔄 Refresh AniList Status'}</button>
+          </div>
         )}
-
         {totalRequirements > 0 && (
-            <div className="challenge-detail-progress">
-                <ProgressBar completed={completedOnAniList} total={totalFilledEntries > 0 ? totalFilledEntries : totalRequirements} />
-            </div>
+          <div className="challenge-detail-progress">
+            <ProgressBar completed={completedOnAniList} total={totalFilledEntries > 0 ? totalFilledEntries : totalRequirements} />
+          </div>
         )}
         {challenge.postUrl && <p className="challenge-post-url">Post URL: <a href={challenge.postUrl} target="_blank" rel="noreferrer">{challenge.postUrl}</a></p>}
-
         {totalRequirements === 0 ? (<EmptyState message="No requirements in this challenge." />) : (
-          <ul>{challenge.entries.map((entry) => {
-            const isEditingThisEntry = editingEntry.challengeId === challenge.id && editingEntry.entryId === entry.id;
-
-            return (
-              <li key={entry.id} className={`anime-entry-item ${isEditingThisEntry ? 'editing-entry' : ''}`}>
-                {isEditingThisEntry ? (
-                  <div className="entry-anime-edit-container">
-                    <input
-                      type="text"
-                      value={tempAnimeIdForEntry}
-                      onChange={(e) => setTempAnimeIdForEntry(e.target.value)}
-                      placeholder="AniList ID or blank to unfill"
-                      className="entry-anime-id-input"
-                      autoFocus
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveAnimeForRequirement(); if (e.key === 'Escape') handleCancelEditAnimeForRequirement();}}
-                    />
-                    <div className="entry-anime-edit-actions">
-                      <button onClick={handleSaveAnimeForRequirement} disabled={isSubmittingEntryAnime} className="button-primary save-entry-anime">
-                        {isSubmittingEntryAnime ? '⏳' : '✔️'}
-                      </button>
-                      <button onClick={handleCancelEditAnimeForRequirement} disabled={isSubmittingEntryAnime} className="button-secondary cancel-entry-anime">
-                        ❌
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+          <ul>{challenge.entries.map((entry) => (
+            <li key={entry.id} className="anime-entry-item">
+              {entry.animeId && entry.image ? (
+                <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
+                  <img src={entry.image} alt={getDisplayTitle(entry)} className="anime-entry-image" />
+                </a>
+              ) : (
+                <div className="anime-entry-image placeholder-image">📝</div>
+              )}
+              <div className="anime-entry-details">
+                {entry.animeId ? (
                   <>
-                    {entry.animeId && entry.image ? (
-                      <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
-                        <img src={entry.image} alt={getDisplayTitle(entry)} className="anime-entry-image"/>
-                      </a>
-                    ) : (
-                      <div className="anime-entry-image placeholder-image">📝</div>
-                    )}
-                    <div className="anime-entry-details">
-                      {entry.animeId ? (
-                        <>
-                          <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
-                            <strong>{getDisplayTitle(entry)}</strong>
-                          </a>
-                          {(entry.title && entry.title !== getDisplayTitle(entry) || entry.title === "Unnamed Requirement") &&
-                            <p className="anime-entry-requirement-text">Requirement: {entry.title}</p>
-                          }
-                        </>
-                      ) : (
-                        <strong>{entry.title}</strong> 
-                      )}
-                      <span className="anime-entry-status">
-                        AniList: {entry.animeId ?
-                                  (entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌') :
-                                  <span className="status-na">N/A</span>}
-                        {' | '}Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}
-                      </span>
-                      {entry.animeId && entry.statusAniList === 'complete' && entry.statusChallenge !== 'complete' && (<div className="status-warning">⚠️ Needs post update</div>)}
-                      {entry.animeId && entry.statusAniList !== 'complete' && entry.statusChallenge === 'complete' && (<div className="status-info">ℹ️ Marked complete in challenge, but not on AniList</div>)}
-                      <span className="anime-entry-dates">Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}</span>
-                    </div>
-                    <button 
-                      onClick={() => handleStartEditAnimeForRequirement(challenge.id, entry)} 
-                      className="button-secondary edit-entry-anime-btn"
-                      title={entry.animeId ? "Change Anime" : "Add Anime"}
-                      disabled={editingChallengeId !== null} 
-                    >
-                      ✏️
-                    </button>
+                    <a href={`https://anilist.co/anime/${entry.animeId}`} target="_blank" rel="noreferrer">
+                      <strong>{getDisplayTitle(entry)}</strong>
+                    </a>
+                    {(entry.title && entry.title !== getDisplayTitle(entry) || entry.title === "Unnamed Requirement") &&
+                      <p className="anime-entry-requirement-text">Requirement: {entry.title}</p>
+                    }
                   </>
+                ) : (
+                  <strong>{entry.title}</strong>
                 )}
-              </li>
-            );
-          })}</ul>
+                <span className="anime-entry-status">
+                  AniList: {entry.animeId ?
+                    (entry.statusAniList === 'complete' ? '✅' : entry.statusAniList === 'ongoing' ? '⭐' : '❌') :
+                    <span className="status-na">N/A</span>}
+                  {' | '}Challenge: {entry.statusChallenge === 'complete' ? '✅' : entry.statusChallenge === 'ongoing' ? '⭐' : '❌'}
+                </span>
+                {entry.animeId && entry.statusAniList === 'complete' && entry.statusChallenge !== 'complete' && (<div className="status-warning">⚠️ Needs post update</div>)}
+                {entry.animeId && entry.statusAniList !== 'complete' && entry.statusChallenge === 'complete' && (<div className="status-info">ℹ️ Marked complete in challenge, but not on AniList</div>)}
+                <span className="anime-entry-dates">Start: {entry.startDate || '—'} | Finish: {entry.endDate || '—'}</span>
+              </div>
+            </li>))}
+          </ul>
         )}
       </div>
     );
-  }, [
-    anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus, preferredTitle, 
-    editingChallengeId, tempChallengeTitle, 
-    challenges, addToast, 
-    editingEntry, tempAnimeIdForEntry, isSubmittingEntryAnime, 
-    handleEditTitleClick, handleSaveChallengeTitle, handleCancelEditTitle, 
-    handleStartEditAnimeForRequirement, handleSaveAnimeForRequirement, handleCancelEditAnimeForRequirement 
-  ]);
+  }, [anilistUsername, isRefreshingChallenge, getDisplayTitle, handleRefreshSingleChallengeStatus, preferredTitle, editingChallengeId, tempChallengeTitle, challenges, addToast]);
 
   const filteredAndSortedChallenges = useMemo(() => {
     let processedChallenges = [...challenges];
@@ -1127,7 +946,7 @@ function App() {
 
       <div className="sidebar">
         <div className="sidebar-top-content">
-          <div onClick={() => { if (editingChallengeId) {handleCancelEditTitle();} if(editingEntry.challengeId) {handleCancelEditAnimeForRequirement();} setSelectedChallenge(null);}} className="app-title-container"> {/* Added cancel entry edit */}
+          <div onClick={() => { if (editingChallengeId) {handleCancelEditTitle();} setSelectedChallenge(null);}} className="app-title-container">
             <img src={awcLogo} alt="AWC Tracker Logo" className="app-logo" />
             <span className="app-title-text">AWC Tracker</span>
           </div>
@@ -1174,7 +993,7 @@ function App() {
           <h3>Saved Challenges</h3>
         </div>
         {challenges.length === 0 ? (<EmptyState message="No challenges saved." subMessage="Add one in the main panel." />)
-          : (<ul>{challenges.map(ch => (<li key={ch.id} onClick={() => {if (editingChallengeId && editingChallengeId !== ch.id) {handleCancelEditTitle();} if(editingEntry.challengeId && editingEntry.challengeId !== ch.id) {handleCancelEditAnimeForRequirement();} setSelectedChallenge(ch);}} className={`sidebar-challenge-item ${selectedChallenge?.id === ch.id ? 'selected' : ''}`}><strong>{ch.title}</strong></li>))}</ul>)}  {/* Added cancel entry edit */}
+          : (<ul>{challenges.map(ch => (<li key={ch.id} onClick={() => {if (editingChallengeId && editingChallengeId !== ch.id) {handleCancelEditTitle();} setSelectedChallenge(ch);}} className={`sidebar-challenge-item ${selectedChallenge?.id === ch.id ? 'selected' : ''}`}><strong>{ch.title}</strong></li>))}</ul>)} 
 
         <div className="sidebar-bottom-controls">
           <div className="sidebar-action-buttons">
@@ -1336,7 +1155,7 @@ function App() {
                           </div>
                         </li>
                       );
-                    } else { 
+                    } else {
                       return (
                         <li key={anime.animeId || anime.id} className="global-anime-grid-item">
                            <a href={`https://anilist.co/anime/${anime.animeId}`} target="_blank" rel="noreferrer" className="grid-item-link">
